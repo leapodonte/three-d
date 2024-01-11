@@ -2,7 +2,6 @@ use crate::control::*;
 use crate::core::*;
 use egui_glow::Painter;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 #[doc(hidden)]
 pub use egui;
@@ -30,7 +29,7 @@ impl GUI {
     ///
     /// Creates a new GUI from a low-level graphics [Context](crate::context::Context).
     ///
-    pub fn from_gl_context(context: Rc<crate::context::Context>) -> Self {
+    pub fn from_gl_context(context: std::sync::Arc<crate::context::Context>) -> Self {
         GUI {
             egui_context: egui::Context::default(),
             painter: RefCell::new(Painter::new(context, "", None).unwrap()),
@@ -74,7 +73,7 @@ impl GUI {
                         + viewport.height as f32 / device_pixel_ratio as f32,
                 },
             }),
-            // pixels_per_point: Some(device_pixel_ratio as f32),
+            pixels_per_point: Some(device_pixel_ratio as f32),
             time: Some(accumulated_time_in_ms * 0.001),
             modifiers: (&self.modifiers).into(),
             events: events
@@ -253,8 +252,8 @@ impl GUI {
             .borrow_mut()
             .take()
             .expect("need to call GUI::update before GUI::render");
+        let clipped_meshes = self.egui_context.tessellate(output.shapes);
         let scale = self.egui_context.pixels_per_point();
-        let clipped_meshes = self.egui_context.tessellate(output.shapes, scale);
         self.painter.borrow_mut().paint_and_update_textures(
             [self.viewport.width, self.viewport.height],
             scale,
@@ -265,11 +264,7 @@ impl GUI {
         #[allow(unsafe_code)]
         unsafe {
             use glow::HasContext as _;
-            self.painter
-                .borrow()
-                .gl()
-                .as_ref()
-                .disable(glow::FRAMEBUFFER_SRGB);
+            self.painter.borrow().gl().disable(glow::FRAMEBUFFER_SRGB);
         }
     }
 }
