@@ -11,8 +11,8 @@ pub fn main() {
     #[cfg(target_arch = "wasm32")]
     let window_builder = {
         use wasm_bindgen::JsCast;
-        use winit::platform::web::WindowBuilderExtWebSys;
-        winit::window::WindowBuilder::new()
+        use winit::platform::web::WindowAttributesExtWebSys;
+        window::Window::default_attributes()
             .with_canvas(Some(
                 web_sys::window()
                     .unwrap()

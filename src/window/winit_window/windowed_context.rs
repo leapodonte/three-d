@@ -33,7 +33,7 @@ mod inner {
             window: &Window,
             settings: SurfaceSettings,
         ) -> Result<Self, WindowError> {
-            let canvas = window.canvas();
+            let canvas = window.canvas().ok_or(WindowError::WindowCreation)?;
 
             // get webgl context and verify extensions
             let webgl_context = canvas
