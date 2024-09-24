@@ -2,7 +2,6 @@
 use crate::core::{Context, CoreError, Viewport};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
 use winit::*;
 
 mod settings;
@@ -28,13 +27,27 @@ pub enum WindowError {
     #[error("glutin error")]
     GlutinError(#[from] glutin::error::Error),
     #[error("winit error")]
-    WinitError(#[from] winit::error::OsError),
+    WinitError(#[from] WinitError),
     #[error("error in three-d")]
     ThreeDError(#[from] CoreError),
     #[error("the number of MSAA samples must be a power of two")]
     InvalidNumberOfMSAASamples,
     #[error("it's not possible to create a graphics context/surface with the given settings")]
     SurfaceCreationError,
+}
+
+///
+/// Error associated with a winit window.
+///
+#[derive(Error, Debug)]
+#[allow(missing_docs)]
+pub enum WinitError {
+    #[error("os error")]
+    OsError(#[from] winit::error::OsError),
+    #[error("handle error")]
+    HandleError(#[from] winit::raw_window_handle::HandleError),
+    #[error("event loop error")]
+    EventLoopError(#[from] winit::error::EventLoopError),
 }
 
 ///
@@ -86,7 +99,10 @@ impl Window {
     ///
     /// [settings]: WindowSettings
     pub fn new(window_settings: WindowSettings) -> Result<Self, WindowError> {
-        Self::from_event_loop(window_settings, EventLoop::new())
+        Self::from_event_loop(
+            window_settings,
+            EventLoop::new().map_err(|e| WinitError::EventLoopError(e))?,
+        )
     }
 
     /// Exactly the same as [`Window::new()`] except with the ability to supply
@@ -97,7 +113,7 @@ impl Window {
     ) -> Result<Self, WindowError> {
         #[cfg(not(target_arch = "wasm32"))]
         let window_builder = {
-            let window_builder = WindowBuilder::new()
+            let window_builder = window::Window::default_attributes()
                 .with_title(&window_settings.title)
                 .with_min_inner_size(dpi::LogicalSize::new(
                     window_settings.min_size.0,
@@ -123,7 +139,7 @@ impl Window {
         #[cfg(target_arch = "wasm32")]
         let window_builder = {
             use wasm_bindgen::JsCast;
-            use winit::{dpi::LogicalSize, platform::web::WindowBuilderExtWebSys};
+            use winit::dpi::LogicalSize;
 
             let canvas = if let Some(canvas) = window_settings.canvas {
                 canvas
@@ -164,7 +180,9 @@ impl Window {
                 .with_prevent_default(true)
         };
 
-        let winit_window = window_builder.build(&event_loop)?;
+        let winit_window = event_loop
+            .create_window(window_builder)
+            .map_err(WinitError::OsError)?;
         winit_window.focus_window();
         Self::from_winit_window(
             winit_window,
@@ -219,77 +237,77 @@ impl Window {
     ///
     /// Start the main render loop which calls the `callback` closure each frame.
     ///
-    pub fn render_loop<F: 'static + FnMut(FrameInput) -> FrameOutput>(self, mut callback: F) {
+    pub fn render_loop<F: 'static + FnMut(FrameInput) -> FrameOutput>(mut self, mut callback: F) {
         let mut frame_input_generator = FrameInputGenerator::from_winit_window(&self.window);
-        self.event_loop
-            .run(move |event, _, control_flow| match event {
-                Event::LoopDestroyed => {
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        use wasm_bindgen::JsCast;
-                        use winit::platform::web::WindowExtWebSys;
-                        self.window
-                            .canvas()
-                            .remove_event_listener_with_callback(
-                                "contextmenu",
-                                self.closure.as_ref().unchecked_ref(),
-                            )
-                            .unwrap();
-                    }
+        _ = self.event_loop.run(move |event, event_loop| match event {
+            Event::LoopExiting => {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    use wasm_bindgen::JsCast;
+                    use winit::platform::web::WindowExtWebSys;
+                    self.window
+                        .canvas()
+                        .remove_event_listener_with_callback(
+                            "contextmenu",
+                            self.closure.as_ref().unchecked_ref(),
+                        )
+                        .unwrap();
                 }
-                Event::MainEventsCleared => {
-                    self.window.request_redraw();
-                }
-                Event::RedrawRequested(_) => {
-                    #[cfg(target_arch = "wasm32")]
-                    if self.maximized || option_env!("THREE_D_SCREENSHOT").is_some() {
-                        use winit::platform::web::WindowExtWebSys;
-
-                        let html_canvas = self.window.canvas();
-                        let browser_window = html_canvas
-                            .owner_document()
-                            .and_then(|doc| doc.default_view())
-                            .or_else(web_sys::window)
-                            .unwrap();
-
-                        self.window.set_inner_size(dpi::LogicalSize {
-                            width: browser_window.inner_width().unwrap().as_f64().unwrap(),
-                            height: browser_window.inner_height().unwrap().as_f64().unwrap(),
-                        });
+            }
+            Event::AboutToWait => {
+                self.window.request_redraw();
+            }
+            Event::WindowEvent { ref event, .. } => {
+                frame_input_generator.handle_winit_window_event(event);
+                match event {
+                    WindowEvent::Resized(physical_size) => {
+                        self.gl.resize(*physical_size);
                     }
+                    WindowEvent::RedrawRequested => {
+                        #[cfg(target_arch = "wasm32")]
+                        if self.maximized || option_env!("THREE_D_SCREENSHOT").is_some() {
+                            use winit::platform::web::WindowExtWebSys;
 
-                    let frame_input = frame_input_generator.generate(&self.gl);
-                    let frame_output = callback(frame_input);
-                    if frame_output.exit {
-                        *control_flow = ControlFlow::Exit;
-                    } else {
-                        if frame_output.swap_buffers && option_env!("THREE_D_SCREENSHOT").is_none()
-                        {
-                            self.gl.swap_buffers().unwrap();
+                            let html_canvas = self.window.canvas();
+                            let browser_window = html_canvas
+                                .owner_document()
+                                .and_then(|doc| doc.default_view())
+                                .or_else(web_sys::window)
+                                .unwrap();
+
+                            self.window.set_inner_size(dpi::LogicalSize {
+                                width: browser_window.inner_width().unwrap().as_f64().unwrap(),
+                                height: browser_window.inner_height().unwrap().as_f64().unwrap(),
+                            });
                         }
-                        if frame_output.wait_next_event {
-                            *control_flow = ControlFlow::Wait;
+
+                        let frame_input = frame_input_generator.generate(&self.gl);
+                        let frame_output = callback(frame_input);
+                        if frame_output.exit {
+                            event_loop.exit();
                         } else {
-                            *control_flow = ControlFlow::Poll;
-                            self.window.request_redraw();
+                            if frame_output.swap_buffers
+                                && option_env!("THREE_D_SCREENSHOT").is_none()
+                            {
+                                self.gl.swap_buffers().unwrap();
+                            }
+                            if frame_output.wait_next_event {
+                                event_loop.set_control_flow(ControlFlow::Wait);
+                            } else {
+                                event_loop.set_control_flow(ControlFlow::Poll);
+                                self.window.request_redraw();
+                            }
                         }
                     }
+                    // WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                    //     self.gl.resize(**new_inner_size);
+                    // }
+                    WindowEvent::CloseRequested => event_loop.exit(),
+                    _ => (),
                 }
-                Event::WindowEvent { ref event, .. } => {
-                    frame_input_generator.handle_winit_window_event(event);
-                    match event {
-                        WindowEvent::Resized(physical_size) => {
-                            self.gl.resize(*physical_size);
-                        }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            self.gl.resize(**new_inner_size);
-                        }
-                        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                        _ => (),
-                    }
-                }
-                _ => (),
-            });
+            }
+            _ => (),
+        });
     }
 
     ///
