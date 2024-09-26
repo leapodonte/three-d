@@ -7,6 +7,7 @@ struct Scene {
     model: Gm<Mesh, ColorMaterial>,
 }
 
+#[allow(deprecated)]
 pub fn main() {
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 

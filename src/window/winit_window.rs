@@ -109,6 +109,7 @@ impl Window {
 
     /// Exactly the same as [`Window::new()`] except with the ability to supply
     /// an existing [`EventLoop`].
+    #[allow(deprecated)]
     pub fn from_event_loop(
         window_settings: WindowSettings,
         event_loop: EventLoop<()>,
@@ -240,6 +241,7 @@ impl Window {
     ///
     /// Start the main render loop which calls the `callback` closure each frame.
     ///
+    #[allow(deprecated)]
     pub fn render_loop<F: 'static + FnMut(FrameInput) -> FrameOutput>(self, mut callback: F) {
         let mut frame_input_generator = FrameInputGenerator::from_winit_window(&self.window);
         _ = self.event_loop.run(move |event, event_loop| match event {

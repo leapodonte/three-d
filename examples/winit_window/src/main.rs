@@ -1,5 +1,6 @@
 use three_d::{renderer::*, FrameInputGenerator, SurfaceSettings, WindowedContext};
 
+#[allow(deprecated)]
 pub fn main() {
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 

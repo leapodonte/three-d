@@ -107,7 +107,7 @@ mod inner {
 
     impl WindowedContext {
         /// Creates a new windowed context from a [winit](https://crates.io/crates/winit) window.
-        #[allow(unsafe_code)]
+        #[allow(unsafe_code, clippy::arc_with_non_send_sync)]
         pub fn from_winit_window(
             window: &Window,
             settings: SurfaceSettings,
