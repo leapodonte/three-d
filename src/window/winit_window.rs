@@ -103,7 +103,7 @@ impl Window {
     pub fn new(window_settings: WindowSettings) -> Result<Self, WindowError> {
         Self::from_event_loop(
             window_settings,
-            EventLoop::new().map_err(|e| WinitError::EventLoopError(e))?,
+            EventLoop::new().map_err(WinitError::EventLoopError)?,
         )
     }
 

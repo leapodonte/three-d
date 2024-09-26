@@ -40,7 +40,7 @@ impl<T: BufferDataType + PrimitiveDataType> BufferDataType for [T; 4] {}
 
 impl BufferDataType for Quat {}
 
-impl<T: BufferDataType + ?Sized> BufferDataType for &T {}
+impl<T: BufferDataType> BufferDataType for &T {}
 
 struct Buffer {
     context: Context,

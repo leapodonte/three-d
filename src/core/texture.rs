@@ -57,7 +57,7 @@ impl<T: TextureDataType + PrimitiveDataType> TextureDataType for [T; 4] {}
 
 impl TextureDataType for Quat {}
 
-impl<T: TextureDataType + ?Sized> TextureDataType for &T {}
+impl<T: TextureDataType> TextureDataType for &T {}
 
 /// The basic data type used for each pixel in a depth texture.
 pub trait DepthTextureDataType: DepthDataType {}
