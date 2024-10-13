@@ -30,7 +30,7 @@ pub async fn run() {
 
     let mut loaded = if let Ok(loaded) = three_d_asset::io::load_async(&[
         "../assets/chinese_garden_4k.hdr", // Source: https://polyhaven.com/
-        "examples/assets/gltf/DamagedHelmet.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
+        "examples/assets/gltf/teeth.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
     ])
     .await
     {
@@ -38,7 +38,7 @@ pub async fn run() {
     } else {
         three_d_asset::io::load_async(&[
             "https://asny.github.io/three-d/assets/chinese_garden_4k.hdr",
-            "examples/assets/gltf/DamagedHelmet.glb",
+            "examples/assets/gltf/teeth.glb",
         ])
         .await
         .expect("failed to download the necessary assets, to enable running this example offline, place the relevant assets in a folder called 'assets' next to the three-d source")
@@ -47,7 +47,7 @@ pub async fn run() {
     let environment_map = loaded.deserialize("chinese").unwrap();
     let skybox = Skybox::new_from_equirectangular(&context, &environment_map);
 
-    let mut cpu_model: CpuModel = loaded.deserialize("DamagedHelmet").unwrap();
+    let mut cpu_model: CpuModel = loaded.deserialize("teeth").unwrap();
     cpu_model
         .geometries
         .iter_mut()
