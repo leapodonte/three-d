@@ -19,6 +19,9 @@ pub struct Context {
     pub programs: Arc<RwLock<HashMap<Vec<u8>, Program>>>,
 }
 
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
+
 impl Context {
     ///
     /// Creates a new mid-level context, used in this [core](crate::core) module, from a low-level OpenGL/WebGL context from the [context](crate::context) module.

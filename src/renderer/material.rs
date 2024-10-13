@@ -90,6 +90,7 @@ pub struct Texture2DRef {
 
 impl Texture2DRef {
     /// Creates a new [Texture2DRef] with an identity transformation from a [CpuTexture].
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn from_cpu_texture(context: &Context, cpu_texture: &CpuTexture) -> Self {
         Self {
             texture: Arc::new(Texture2D::new(context, cpu_texture)),
