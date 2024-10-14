@@ -1,5 +1,6 @@
 #![allow(unsafe_code)]
 use crate::core::{Context, CoreError, Viewport};
+use log::info;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::*;
@@ -267,7 +268,8 @@ impl Window {
                 frame_input_generator.handle_winit_window_event(event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        self.gl.resize(*physical_size);
+                        info!("Resized: {:?}", *physical_size);
+                        // self.gl.resize(*physical_size);
                     }
                     WindowEvent::RedrawRequested => {
                         #[cfg(target_arch = "wasm32")]

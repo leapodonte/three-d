@@ -1,13 +1,40 @@
 use three_d::*;
+use three_d::{renderer::*, FrameInputGenerator, SurfaceSettings, WindowedContext};
 
 pub fn main() {
     // Create a window (a canvas on web)
-    let window = Window::new(WindowSettings {
-        title: "Triangle!".to_string(),
-        max_size: Some((1280, 720)),
-        ..Default::default()
-    })
-    .unwrap();
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut window_builder = winit::window::Window::default_attributes()
+        .with_title("winit window")
+        // .with_min_inner_size(winit::dpi::LogicalSize::new(1280, 720))
+        .with_maximized(false);
+    #[cfg(target_arch = "wasm32")]
+    let mut window_builder = {
+        use wasm_bindgen::JsCast;
+        use winit::platform::web::WindowAttributesExtWebSys;
+        winit::window::Window::default_attributes()
+            .with_canvas(Some(
+                web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .get_elements_by_tag_name("canvas")
+                    .item(0)
+                    .unwrap()
+                    .dyn_into::<web_sys::HtmlCanvasElement>()
+                    .unwrap(),
+            ))
+            // .with_inner_size(winit::dpi::LogicalSize::new(1280, 720))
+            .with_prevent_default(true)
+    };
+    window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(100, 100));
+    let winit_window = event_loop.create_window(window_builder).unwrap();
+    winit_window.focus_window();
+    let window =
+        Window::from_winit_window(winit_window, event_loop, SurfaceSettings::default(), false)
+            .unwrap();
 
     // Get the graphics context from the window
     let context = window.gl();
