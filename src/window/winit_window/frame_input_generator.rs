@@ -38,6 +38,11 @@ impl FrameInputGenerator {
     fn new(size: PhysicalSize<u32>, device_pixel_ratio: f64) -> Self {
         let (window_width, window_height): (u32, u32) =
             size.to_logical::<f32>(device_pixel_ratio).into();
+        crate::log!(
+            "FrameInputGenerator::new {} {}",
+            window_width,
+            window_height
+        );
         Self {
             events: Vec::new(),
             accumulated_time: 0.0,
@@ -73,6 +78,14 @@ impl FrameInputGenerator {
             duration.as_secs() as f64 * 1000.0 + duration.subsec_nanos() as f64 * 1e-6;
         self.accumulated_time += elapsed_time;
         self.last_time = now;
+
+        crate::log!(
+            "FrameInputGenerator::generate {} {} : viewport {}x{}",
+            self.window_width,
+            self.window_height,
+            self.viewport.width,
+            self.viewport.height
+        );
 
         let frame_input = FrameInput {
             events: self.events.drain(..).collect(),

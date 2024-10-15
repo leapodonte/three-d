@@ -112,6 +112,7 @@ mod inner {
             window: &Window,
             settings: SurfaceSettings,
         ) -> Result<Self, WindowError> {
+            crate::log!("WindowedContext::from_winit_window {:?}", settings);
             if settings.multisamples > 0 && !settings.multisamples.is_power_of_two() {
                 Err(WindowError::InvalidNumberOfMSAASamples)?;
             }
@@ -189,6 +190,7 @@ mod inner {
             let (width, height): (u32, u32) = window.inner_size().into();
             let width = std::num::NonZeroU32::new(width.max(1)).unwrap();
             let height = std::num::NonZeroU32::new(height.max(1)).unwrap();
+            crate::log!("Surface size: {:?}x{:?}", width, height);
             let surface_attributes =
                 glutin::surface::SurfaceAttributesBuilder::<glutin::surface::WindowSurface>::new()
                     .build(raw_window_handle, width, height);
@@ -218,6 +220,12 @@ mod inner {
         pub fn resize(&self, physical_size: winit::dpi::PhysicalSize<u32>) {
             let width = std::num::NonZeroU32::new(physical_size.width.max(1)).unwrap();
             let height = std::num::NonZeroU32::new(physical_size.height.max(1)).unwrap();
+            crate::log!(
+                "Surface::resize: {} {} | context: {:?}",
+                width,
+                height,
+                self.glutin_context
+            );
             self.surface.resize(&self.glutin_context, width, height);
         }
 

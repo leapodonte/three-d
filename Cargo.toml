@@ -25,7 +25,8 @@ egui-gui = ["egui_glow", "egui", "getrandom"] # Additional GUI features
 [dependencies]
 glow = "0.13"
 cgmath = "0.18"
-three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev" }
+three-d-asset = { path = "../three-d-asset" }
+# three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev" }
 thiserror = "1"
 winit = {version = "0.30", optional = true}
 egui = { version = "0.28", optional = true }
@@ -48,7 +49,8 @@ web-time = "1.1"
 
 [dev-dependencies]
 rand = "0.7"
-three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev", features = ["hdr", "gltf", "obj", "vol", "pcd", "png", "jpeg", "http", "data-url"] }
+three-d-asset = { path = "../three-d-asset", features = ["hdr", "gltf", "obj", "vol", "pcd", "png", "jpeg", "http", "data-url"] }
+# three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev", features = ["hdr", "gltf", "obj", "vol", "pcd", "png", "jpeg", "http", "data-url"] }
 noise = {version = "0.6", default-features = false}
 winit = "0.30"
 

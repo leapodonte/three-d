@@ -1,7 +1,13 @@
 use three_d::*;
-use three_d::{renderer::*, FrameInputGenerator, SurfaceSettings, WindowedContext};
 
 pub fn main() {
+    // let window = Window::new(WindowSettings {
+    //     title: "Triangle!".to_string(),
+    //     initial_size: Some((720, 720)),
+    //     ..Default::default()
+    // })
+    // .unwrap();
+
     // Create a window (a canvas on web)
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 
@@ -26,10 +32,11 @@ pub fn main() {
                     .dyn_into::<web_sys::HtmlCanvasElement>()
                     .unwrap(),
             ))
-            // .with_inner_size(winit::dpi::LogicalSize::new(1280, 720))
-            .with_prevent_default(true)
+            // .with_inner_size(winit::dpi::LogicalSize::new(500, 500))
+            .with_prevent_default(false)
     };
     window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(100, 100));
+    #[allow(deprecated)]
     let winit_window = event_loop.create_window(window_builder).unwrap();
     winit_window.focus_window();
     let window =
@@ -68,25 +75,52 @@ pub fn main() {
     };
 
     // Construct a model, with a default color material, thereby transferring the mesh data to the GPU
-    let mut model = Gm::new(Mesh::new(&context, &cpu_mesh), ColorMaterial::default());
+    let model = Gm::new(Mesh::new(&context, &cpu_mesh), ColorMaterial::default());
 
     // Add an animation to the triangle.
-    model.set_animation(|time| Mat4::from_angle_y(radians(time * 0.005)));
+    // model.set_animation(|time| Mat4::from_angle_y(radians(time * 0.002)));
+
+    // let mut last_window_width = 0;
+    // let mut last_window_height = 0;
+
+    // let mut last_viewer_width = 0;
+    // let mut last_viewer_height = 0;
+
+    // let mut last_viewer_x = -50;
+    // let mut last_viewer_y = -50;
 
     // Start the main render loop
     window.render_loop(
         move |frame_input| // Begin a new frame with an updated frame input
     {
+        // if frame_input.window_width != last_window_width || frame_input.window_height != last_window_height {
+        //     log!("Window(w,h): {} {}", frame_input.window_width, frame_input.window_height);
+        //     last_window_width = frame_input.window_width;
+        //     last_window_height = frame_input.window_height;
+        // }
+        // if frame_input.viewport.width != last_viewer_width || frame_input.viewport.height != last_viewer_height {
+        //     log!("viewer(w,h): {} {}", frame_input.viewport.width, frame_input.viewport.height);
+        //     last_viewer_width = frame_input.viewport.width;
+        //     last_viewer_height = frame_input.viewport.height;
+        // }
+
+        // if frame_input.viewport.x != last_viewer_x || frame_input.viewport.y != last_viewer_y {
+        //     log!("viewer(x,y): {} {}", frame_input.viewport.x, frame_input.viewport.y);
+        //     last_viewer_x = frame_input.viewport.x;
+        //     last_viewer_y = frame_input.viewport.y;
+        // }
+
+
         // Ensure the viewport matches the current window viewport which changes if the window is resized
         camera.set_viewport(frame_input.viewport);
 
         // Update the animation of the triangle
-        model.animate(frame_input.accumulated_time as f32);
+        // model.animate(frame_input.accumulated_time as f32);
 
         // Get the screen render target to be able to render something on the screen
         frame_input.screen()
             // Clear the color and depth of the screen render target
-            .clear(ClearState::color_and_depth(0.8, 0.8, 0.8, 1.0, 1.0))
+            .clear(ClearState::color_and_depth(0.2, 0.2, 0.2, 1.0, 1.0))
             // Render the triangle with the color material which uses the per vertex colors defined at construction
             .render(
                 &camera, &model, &[]

@@ -1,6 +1,5 @@
 #![allow(unsafe_code)]
 use crate::core::{Context, CoreError, Viewport};
-use log::info;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::*;
@@ -207,6 +206,7 @@ impl Window {
         mut surface_settings: SurfaceSettings,
         maximized: bool,
     ) -> Result<Self, WindowError> {
+        crate::log!("from_winit_window {:?}", surface_settings);
         let mut gl = WindowedContext::from_winit_window(&winit_window, surface_settings);
         if gl.is_err() {
             surface_settings.multisamples = 0;
@@ -228,6 +228,7 @@ impl Window {
                 .expect("failed to listen to canvas context menu");
             closure
         };
+        crate::log!("from_winit_window {:?}", winit_window);
 
         Ok(Self {
             window: winit_window,
@@ -268,8 +269,8 @@ impl Window {
                 frame_input_generator.handle_winit_window_event(event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        info!("Resized: {:?}", *physical_size);
-                        // self.gl.resize(*physical_size);
+                        crate::log!("Resized: {:?}", *physical_size);
+                        self.gl.resize(*physical_size);
                     }
                     WindowEvent::RedrawRequested => {
                         #[cfg(target_arch = "wasm32")]
@@ -326,6 +327,13 @@ impl Window {
     /// Return the current logical size of the window.
     ///
     pub fn size(&self) -> (u32, u32) {
+        crate::log!("Physical size: {:?}", self.window.inner_size());
+        crate::log!(
+            "Logical size: {:?}",
+            self.window
+                .inner_size()
+                .to_logical::<f64>(self.window.scale_factor())
+        );
         self.window
             .inner_size()
             .to_logical::<f64>(self.window.scale_factor())

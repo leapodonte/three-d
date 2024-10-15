@@ -23,3 +23,20 @@ pub use window::*;
 mod gui;
 #[allow(unused_imports)]
 pub use gui::*;
+
+/// Log macro
+#[cfg(not(target_arch = "wasm32"))]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        println!($($arg)*)
+    }};
+}
+/// Log macro
+#[cfg(target_arch = "wasm32")]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        log::info!($($arg)*)
+    }};
+}
