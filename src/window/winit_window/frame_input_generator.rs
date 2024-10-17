@@ -39,10 +39,13 @@ impl FrameInputGenerator {
         let (window_width, window_height): (u32, u32) =
             size.to_logical::<f32>(device_pixel_ratio).into();
         crate::log!(
-            "FrameInputGenerator::new {} {}",
+            "FrameInputGenerator::new {} {} ; ratio = {}",
             window_width,
-            window_height
+            window_height,
+            device_pixel_ratio
         );
+        let window_width = 500;
+        let window_height = 500;
         Self {
             events: Vec::new(),
             accumulated_time: 0.0,
@@ -149,6 +152,9 @@ impl FrameInputGenerator {
             //     self.window_width = logical_size.width;
             //     self.window_height = logical_size.height;
             // }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                crate::log!("ScaleFactorChanged {}", scale_factor);
+            }
             WindowEvent::Occluded(false) => {
                 self.first_frame = true;
             }
