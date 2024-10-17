@@ -40,6 +40,7 @@ pub fn main() {
     // window_builder = window_builder.with_inner_size(winit::dpi::LogicalSize::new(700, 700));
     #[allow(deprecated)]
     let winit_window = window_builder.build(&event_loop).unwrap();
+    log::info!("inner_size: {:?}", winit_window.inner_size());
     winit_window.focus_window();
     let window =
         Window::from_winit_window(winit_window, event_loop, SurfaceSettings::default(), false)
@@ -89,7 +90,7 @@ pub fn main() {
     let mut model = Gm::new(Mesh::new(&context, &cpu_mesh), ColorMaterial::default());
 
     // Add an animation to the triangle.
-    model.set_animation(|time| Mat4::from_angle_y(radians(time * 0.002)));
+    // model.set_animation(|time| Mat4::from_angle_y(radians(time * 0.002)));
 
     // let mut last_window_width = 0;
     // let mut last_window_height = 0;
@@ -126,7 +127,7 @@ pub fn main() {
         camera.set_viewport(frame_input.viewport);
 
         // Update the animation of the triangle
-        model.animate(frame_input.accumulated_time as f32);
+        // model.animate(frame_input.accumulated_time as f32);
 
         // Get the screen render target to be able to render something on the screen
         frame_input.screen()
@@ -138,7 +139,7 @@ pub fn main() {
             );
 
         // Returns default frame output to end the frame
-        FrameOutput::default()
+        FrameOutput { exit: false, swap_buffers: true, wait_next_event: true }
     },
     );
 }

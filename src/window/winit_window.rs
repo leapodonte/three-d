@@ -269,6 +269,10 @@ impl Window {
                             }
                         }
 
+                        crate::log!(
+                            "Redraw requested: inner_size={:?}",
+                            self.window.inner_size()
+                        );
                         let frame_input = frame_input_generator.generate(&self.gl);
                         let frame_output = callback(frame_input);
                         if frame_output.exit {
