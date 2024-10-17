@@ -279,6 +279,11 @@ impl Window {
                     frame_input_generator.handle_winit_window_event(event);
                     match event {
                         WindowEvent::Resized(physical_size) => {
+                            crate::log!(
+                                "Resized to {}x{}",
+                                physical_size.width,
+                                physical_size.height
+                            );
                             self.gl.resize(*physical_size);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
