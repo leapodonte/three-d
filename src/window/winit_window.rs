@@ -301,6 +301,13 @@ impl Window {
     /// Return the current logical size of the window.
     ///
     pub fn size(&self) -> (u32, u32) {
+        crate::log!("Physical size: {:?}", self.window.inner_size());
+        crate::log!(
+            "Logical size: {:?}",
+            self.window
+                .inner_size()
+                .to_logical::<f64>(self.window.scale_factor())
+        );
         self.window
             .inner_size()
             .to_logical::<f64>(self.window.scale_factor())
