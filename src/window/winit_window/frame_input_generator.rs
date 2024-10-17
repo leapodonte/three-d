@@ -79,13 +79,13 @@ impl FrameInputGenerator {
         self.accumulated_time += elapsed_time;
         self.last_time = now;
 
-        crate::log!(
-            "FrameInputGenerator::generate {} {} : viewport {}x{}",
-            self.window_width,
-            self.window_height,
-            self.viewport.width,
-            self.viewport.height
-        );
+        // crate::log!(
+        //     "FrameInputGenerator::generate {} {} : viewport {}x{}",
+        //     self.window_width,
+        //     self.window_height,
+        //     self.viewport.width,
+        //     self.viewport.height
+        // );
 
         let frame_input = FrameInput {
             events: self.events.drain(..).collect(),

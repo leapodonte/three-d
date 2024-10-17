@@ -35,7 +35,8 @@ pub fn main() {
             // .with_inner_size(winit::dpi::LogicalSize::new(500, 500))
             .with_prevent_default(false)
     };
-    window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(100, 100));
+    window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(10, 10));
+    // window_builder = window_builder.with_inner_size(winit::dpi::LogicalSize::new(700, 700));
     #[allow(deprecated)]
     let winit_window = event_loop.create_window(window_builder).unwrap();
     winit_window.focus_window();
@@ -56,6 +57,15 @@ pub fn main() {
         0.1,
         10.0,
     );
+    // let mut camera = Camera::new_orthographic(
+    //     window.viewport(),
+    //     vec3(0.0, 0.0, 2.0),
+    //     vec3(0.0, 0.0, 0.0),
+    //     vec3(0.0, 1.0, 0.0),
+    //     degrees(45.0),
+    //     0.1,
+    //     10.0,
+    // );
 
     // Create a CPU-side mesh consisting of a single colored triangle
     let positions = vec![
