@@ -35,6 +35,7 @@ pub fn main() {
             // .with_inner_size(winit::dpi::LogicalSize::new(500, 500))
             .with_prevent_default(false)
     };
+    window_builder = window_builder.with_inner_size(winit::dpi::PhysicalSize::new(500, 500));
     window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(10, 10));
     // window_builder = window_builder.with_inner_size(winit::dpi::LogicalSize::new(700, 700));
     #[allow(deprecated)]
