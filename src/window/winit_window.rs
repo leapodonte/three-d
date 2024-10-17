@@ -312,9 +312,14 @@ impl Window {
                             }
                         }
                     }
-                    // WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                    //     self.gl.resize(**new_inner_size);
-                    // }
+                    WindowEvent::ScaleFactorChanged {
+                        scale_factor,
+                        ..
+                        // inner_size_writer,
+                    } => {
+                        crate::log!("ScaleFactorChanged: {:?}", *scale_factor);
+                        // self.gl.resize(**new_inner_size);
+                    }
                     WindowEvent::CloseRequested => event_loop.exit(),
                     _ => (),
                 }
