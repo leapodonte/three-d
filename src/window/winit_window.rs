@@ -287,6 +287,7 @@ impl Window {
                             self.gl.resize(*physical_size);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                            crate::log!("ScaleFactorChanged: {:?}", *new_inner_size);
                             self.gl.resize(**new_inner_size);
                         }
                         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
