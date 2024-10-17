@@ -86,7 +86,7 @@ impl Window {
     ///
     /// [settings]: WindowSettings
     pub fn new(window_settings: WindowSettings) -> Result<Self, WindowError> {
-        Self::from_event_loop(window_settings, EventLoop::new())
+        Self::from_event_loop(window_settings, EventLoop::new().unwrap())
     }
 
     /// Exactly the same as [`Window::new()`] except with the ability to supply
@@ -201,6 +201,7 @@ impl Window {
                 }) as Box<dyn FnMut(_)>);
             winit_window
                 .canvas()
+                .expect("Failed to get canvas from window")
                 .add_event_listener_with_callback("contextmenu", closure.as_ref().unchecked_ref())
                 .expect("failed to listen to canvas context menu");
             closure
@@ -221,15 +222,14 @@ impl Window {
     ///
     pub fn render_loop<F: 'static + FnMut(FrameInput) -> FrameOutput>(self, mut callback: F) {
         let mut frame_input_generator = FrameInputGenerator::from_winit_window(&self.window);
-        self.event_loop
-            .run(move |event, _, control_flow| match event {
-                Event::LoopDestroyed => {
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        use wasm_bindgen::JsCast;
-                        use winit::platform::web::WindowExtWebSys;
-                        self.window
-                            .canvas()
+        _ = self.event_loop.run(move |event, event_loop| match event {
+            Event::LoopExiting => {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    use wasm_bindgen::JsCast;
+                    use winit::platform::web::WindowExtWebSys;
+                    if let Some(canvas) = self.window.canvas() {
+                        canvas
                             .remove_event_listener_with_callback(
                                 "contextmenu",
                                 self.closure.as_ref().unchecked_ref(),
@@ -237,65 +237,65 @@ impl Window {
                             .unwrap();
                     }
                 }
-                Event::MainEventsCleared => {
-                    self.window.request_redraw();
-                }
-                Event::RedrawRequested(_) => {
-                    #[cfg(target_arch = "wasm32")]
-                    if self.maximized || option_env!("THREE_D_SCREENSHOT").is_some() {
-                        use winit::platform::web::WindowExtWebSys;
-
-                        let html_canvas = self.window.canvas();
-                        let browser_window = html_canvas
-                            .owner_document()
-                            .and_then(|doc| doc.default_view())
-                            .or_else(web_sys::window)
-                            .unwrap();
-
-                        self.window.set_inner_size(dpi::LogicalSize {
-                            width: browser_window.inner_width().unwrap().as_f64().unwrap(),
-                            height: browser_window.inner_height().unwrap().as_f64().unwrap(),
-                        });
+            }
+            Event::AboutToWait => {
+                self.window.request_redraw();
+            }
+            Event::WindowEvent { ref event, .. } => {
+                frame_input_generator.handle_winit_window_event(event);
+                match event {
+                    WindowEvent::Resized(physical_size) => {
+                        self.gl.resize(*physical_size);
                     }
+                    WindowEvent::RedrawRequested => {
+                        #[cfg(target_arch = "wasm32")]
+                        if self.maximized || option_env!("THREE_D_SCREENSHOT").is_some() {
+                            use winit::platform::web::WindowExtWebSys;
 
-                    let frame_input = frame_input_generator.generate(&self.gl);
-                    let frame_output = callback(frame_input);
-                    if frame_output.exit {
-                        *control_flow = ControlFlow::Exit;
-                    } else {
-                        if frame_output.swap_buffers && option_env!("THREE_D_SCREENSHOT").is_none()
-                        {
-                            self.gl.swap_buffers().unwrap();
+                            if let Some(html_canvas) = self.window.canvas() {
+                                let browser_window = html_canvas
+                                    .owner_document()
+                                    .and_then(|doc| doc.default_view())
+                                    .or_else(web_sys::window)
+                                    .unwrap();
+                                _ = self.window.request_inner_size(dpi::LogicalSize {
+                                    width: browser_window.inner_width().unwrap().as_f64().unwrap(),
+                                    height: browser_window
+                                        .inner_height()
+                                        .unwrap()
+                                        .as_f64()
+                                        .unwrap(),
+                                });
+                            }
                         }
-                        if frame_output.wait_next_event {
-                            *control_flow = ControlFlow::Wait;
+
+                        let frame_input = frame_input_generator.generate(&self.gl);
+                        let frame_output = callback(frame_input);
+                        if frame_output.exit {
+                            event_loop.exit();
                         } else {
-                            *control_flow = ControlFlow::Poll;
-                            self.window.request_redraw();
+                            if frame_output.swap_buffers
+                                && option_env!("THREE_D_SCREENSHOT").is_none()
+                            {
+                                self.gl.swap_buffers().unwrap();
+                            }
+                            if frame_output.wait_next_event {
+                                event_loop.set_control_flow(ControlFlow::Wait);
+                            } else {
+                                event_loop.set_control_flow(ControlFlow::Poll);
+                                self.window.request_redraw();
+                            }
                         }
                     }
+                    // WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                    //     self.gl.resize(**new_inner_size);
+                    // }
+                    WindowEvent::CloseRequested => event_loop.exit(),
+                    _ => (),
                 }
-                Event::WindowEvent { ref event, .. } => {
-                    frame_input_generator.handle_winit_window_event(event);
-                    match event {
-                        WindowEvent::Resized(physical_size) => {
-                            crate::log!(
-                                "Resized to {}x{}",
-                                physical_size.width,
-                                physical_size.height
-                            );
-                            self.gl.resize(*physical_size);
-                        }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            crate::log!("ScaleFactorChanged: {:?}", *new_inner_size);
-                            self.gl.resize(**new_inner_size);
-                        }
-                        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                        _ => (),
-                    }
-                }
-                _ => (),
-            });
+            }
+            _ => (),
+        });
     }
 
     ///

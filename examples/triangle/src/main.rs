@@ -9,7 +9,7 @@ pub fn main() {
     // .unwrap();
 
     // Create a window (a canvas on web)
-    let event_loop = winit::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
 
     #[cfg(not(target_arch = "wasm32"))]
     let mut window_builder = winit::window::WindowBuilder::new()

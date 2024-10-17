@@ -33,7 +33,7 @@ mod inner {
             window: &Window,
             settings: SurfaceSettings,
         ) -> Result<Self, WindowError> {
-            let canvas = window.canvas();
+            let canvas = window.canvas().expect("Failed to get canvas from window");
 
             // get webgl context and verify extensions
             let webgl_context = canvas
@@ -90,7 +90,7 @@ mod inner {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod inner {
-    use glutin::{prelude::PossiblyCurrentContextGlSurfaceAccessor, surface::*};
+    use glutin::{prelude::PossiblyCurrentGlContext, surface::*};
 
     use super::*;
     ///
@@ -115,9 +115,9 @@ mod inner {
                 Err(WindowError::InvalidNumberOfMSAASamples)?;
             }
             use glutin::prelude::*;
-            use raw_window_handle::*;
-            let raw_display_handle = window.raw_display_handle();
-            let raw_window_handle = window.raw_window_handle();
+            use winit::raw_window_handle::*;
+            let raw_display_handle = window.display_handle().unwrap().as_raw();
+            let raw_window_handle = window.window_handle().unwrap().as_raw();
 
             // EGL is crossplatform and the official khronos way
             // but sometimes platforms/drivers may not have it, so we use back up options
