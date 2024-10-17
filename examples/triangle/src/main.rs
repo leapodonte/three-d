@@ -9,18 +9,18 @@ pub fn main() {
     // .unwrap();
 
     // Create a window (a canvas on web)
-    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+    let event_loop = winit::event_loop::EventLoop::new();
 
     #[cfg(not(target_arch = "wasm32"))]
-    let mut window_builder = winit::window::Window::default_attributes()
+    let mut window_builder = winit::window::WindowBuilder::new()
         .with_title("winit window")
         // .with_min_inner_size(winit::dpi::LogicalSize::new(1280, 720))
         .with_maximized(false);
     #[cfg(target_arch = "wasm32")]
     let mut window_builder = {
         use wasm_bindgen::JsCast;
-        use winit::platform::web::WindowAttributesExtWebSys;
-        winit::window::Window::default_attributes()
+        use winit::platform::web::WindowBuilderExtWebSys;
+        winit::window::WindowBuilder::new()
             .with_canvas(Some(
                 web_sys::window()
                     .unwrap()
@@ -38,7 +38,7 @@ pub fn main() {
     window_builder = window_builder.with_min_inner_size(winit::dpi::LogicalSize::new(10, 10));
     // window_builder = window_builder.with_inner_size(winit::dpi::LogicalSize::new(700, 700));
     #[allow(deprecated)]
-    let winit_window = event_loop.create_window(window_builder).unwrap();
+    let winit_window = window_builder.build(&event_loop).unwrap();
     winit_window.focus_window();
     let window =
         Window::from_winit_window(winit_window, event_loop, SurfaceSettings::default(), false)
