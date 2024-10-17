@@ -90,7 +90,7 @@ mod inner {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod inner {
-    use glutin::{prelude::PossiblyCurrentContextGlSurfaceAccessor, surface::*};
+    use glutin::{prelude::PossiblyCurrentGlContext, surface::*};
 
     use super::*;
     ///
