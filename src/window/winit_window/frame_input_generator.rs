@@ -39,10 +39,11 @@ impl FrameInputGenerator {
         let (window_width, window_height): (u32, u32) =
             size.to_logical::<f32>(device_pixel_ratio).into();
         crate::log!(
-            "FrameInputGenerator::new {} {} ; ratio = {}",
+            "FrameInputGenerator::new {} {} ; ratio = {} ; phys: {:?}",
             window_width,
             window_height,
-            device_pixel_ratio
+            device_pixel_ratio,
+            size
         );
         let window_width = 500;
         let window_height = 500;
