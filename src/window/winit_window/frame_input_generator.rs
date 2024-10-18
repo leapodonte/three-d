@@ -144,6 +144,7 @@ impl FrameInputGenerator {
                 // new_inner_size,
                 ..
             } => {
+                crate::log!("scale factor changed");
                 self.device_pixel_ratio = *scale_factor;
                 // self.viewport = Viewport::new_at_origo(new_inner_size.width, new_inner_size.height);
                 // let logical_size = new_inner_size.to_logical(self.device_pixel_ratio);

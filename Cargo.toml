@@ -28,7 +28,8 @@ cgmath = "0.18"
 three-d-asset = { path = "../three-d-asset" }
 # three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev" }
 thiserror = "1"
-winit = {version = "0.30", optional = true}
+# winit = {version = "0.30", optional = true}
+winit = {path = "../winit", optional = true}
 egui = { version = "0.28", optional = true }
 egui_glow = { version = "0.28", optional = true }
 getrandom = { version = "0.2", features = ["js"], optional = true }
@@ -52,7 +53,8 @@ rand = "0.7"
 three-d-asset = { path = "../three-d-asset", features = ["hdr", "gltf", "obj", "vol", "pcd", "png", "jpeg", "http", "data-url"] }
 # three-d-asset = { git = "https://github.com/leapodonte/three-d-asset.git", branch = "dev", features = ["hdr", "gltf", "obj", "vol", "pcd", "png", "jpeg", "http", "data-url"] }
 noise = {version = "0.6", default-features = false}
-winit = "0.30"
+# winit = "0.30"
+winit = {path = "../winit"}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

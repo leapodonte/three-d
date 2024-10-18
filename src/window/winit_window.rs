@@ -269,7 +269,7 @@ impl Window {
                 frame_input_generator.handle_winit_window_event(event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        crate::log!("Resized: {:?}", *physical_size);
+                        // crate::log!("Resized: {:?}", *physical_size);
                         self.gl.resize(*physical_size);
                     }
                     WindowEvent::RedrawRequested => {
@@ -365,5 +365,10 @@ impl Window {
     ///
     pub fn gl(&self) -> Context {
         (*self.gl).clone()
+    }
+
+    /// Returns the winit window
+    pub fn winit_window(&self) -> &winit::window::Window {
+        &self.window
     }
 }

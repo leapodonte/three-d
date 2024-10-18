@@ -7,8 +7,10 @@ use winit::window::Window;
 #[cfg(target_arch = "wasm32")]
 mod inner {
     use crate::HardwareAcceleration;
+    use glow::HasContext;
     use serde::{Deserialize, Serialize};
     use wasm_bindgen::JsCast;
+    use web_sys::HtmlCanvasElement;
     use winit::platform::web::WindowExtWebSys;
 
     use super::*;
@@ -25,6 +27,7 @@ mod inner {
     /// A context used for rendering
     pub struct WindowedContext {
         pub(super) context: Context,
+        pub(super) canvas: HtmlCanvasElement,
     }
 
     impl WindowedContext {
@@ -70,11 +73,54 @@ mod inner {
                 context: Context::from_gl_context(Arc::new(
                     crate::context::Context::from_webgl2_context(webgl_context),
                 ))?,
+                canvas,
             })
         }
 
         /// Resizes the context
-        pub fn resize(&self, _physical_size: winit::dpi::PhysicalSize<u32>) {}
+        pub fn resize(&self, physical_size: winit::dpi::PhysicalSize<u32>) {
+            // self.context.set_viewport(viewport);
+            let width = physical_size.width.max(1) as i32;
+            let height = physical_size.height.max(1) as i32;
+            crate::log!(
+                "Surface::resize: {} {} | context: {:?}",
+                width,
+                height,
+                self.context
+            );
+            let context = self.context.get_gl_context();
+            unsafe {
+                context.viewport(0, 0, width, height);
+            }
+            // let webgl_context = self
+            //     .canvas
+            //     .get_context("webgl2")
+            //     .map_err(|e| WindowError::WebGL2NotSupported(format!(": {:?}", e)))
+            //     .unwrap()
+            //     .ok_or(WindowError::WebGL2NotSupported("".to_string()))
+            //     .unwrap()
+            //     .dyn_into::<web_sys::WebGl2RenderingContext>()
+            //     .map_err(|e| WindowError::WebGL2NotSupported(format!(": {:?}", e)))
+            //     .unwrap();
+            // // webgl_context
+            // //     .get_extension("EXT_color_buffer_float")
+            // //     .map_err(|e| WindowError::ColorBufferFloatNotSupported(format!("{:?}", e)))
+            // //     .unwrap();
+            // // webgl_context
+            // //     .get_extension("OES_texture_float_linear")
+            // //     .map_err(|e| WindowError::OESTextureFloatNotSupported(format!(": {:?}", e)))
+            // //     .unwrap();
+            // // webgl_context
+            // //     .get_extension("OES_texture_half_float_linear")
+            // //     .map_err(|e| WindowError::OESTextureFloatNotSupported(format!(": {:?}", e)))
+            // //     .unwrap();
+            // webgl_context.viewport(0, 0, width, height);
+            // self.surface.resize(&self.glutin_context, width, height);
+            // self.context = Context::from_gl_context(Arc::new(
+            //     crate::context::Context::from_webgl2_context(webgl_context),
+            // ))
+            // .unwrap();
+        }
 
         /// Make this context current. Needed when using multiple windows (contexts) on native.
         pub fn make_current(&self) -> Result<(), WindowError> {

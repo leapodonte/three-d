@@ -306,6 +306,10 @@ impl Context {
         }
         Ok(())
     }
+
+    pub fn get_gl_context(&self) -> &crate::context::Context {
+        &self.context
+    }
 }
 
 impl std::fmt::Debug for Context {
