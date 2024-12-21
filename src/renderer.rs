@@ -92,7 +92,7 @@ macro_rules! impl_render_target_extensions_body {
             lights: &[&dyn Light],
         ) -> &Self {
             let frustum = Frustum::new(viewer.projection() * viewer.view());
-            let (mut deferred_objects, mut forward_objects): (Vec<_>, Vec<_>) = objects
+            let (mut deferred_objects, forward_objects): (Vec<_>, Vec<_>) = objects
                 .into_iter()
                 .filter(|o| frustum.contains(o.aabb()))
                 .partition(|o| o.material_type() == MaterialType::Deferred);
@@ -135,10 +135,8 @@ macro_rules! impl_render_target_extensions_body {
                 })
                 .unwrap();
 
-                // Lighting pass
-                self.apply_screen_effect_partially(
-                    scissor_box,
-                    &lighting_pass::LightingPassEffect {},
+                self.apply_screen_effect(
+                    &OitResolveEffect::default(),
                     &viewer,
                     lights,
                     Some(ColorTexture::Array {
@@ -150,7 +148,12 @@ macro_rules! impl_render_target_extensions_body {
             }
 
             // Forward
-            forward_objects.sort_by(|a, b| cmp_render_order(&viewer, a, b));
+            let (_transparent_objects, _opaque_objects): (Vec<_>, Vec<_>) = forward_objects
+                .iter()
+                .filter(|o| frustum.contains(o.aabb()))
+                .partition(|o| o.material_type() == MaterialType::Transparent);
+
+            // forward_objects.sort_by(|a, b| cmp_render_order(&viewer, a, b));
             self.write_partially::<RendererError>(scissor_box, || {
                 for object in forward_objects {
                     object.render(&viewer, lights);
@@ -712,5 +715,154 @@ impl<T: Viewer> Viewer for GeometryPassCamera<T> {
 
     fn tone_mapping(&self) -> ToneMapping {
         self.0.tone_mapping()
+    }
+}
+
+impl RenderTarget<'_> {
+    /// Renders the objects into this render target, but only for the part of the render target defined by the scissor box.
+    /// The objects are sorted by their distance to the viewer and then rendered in order of increasing distance.
+    /// The objects are rendered with the given viewer and lights.
+    /// The objects are grouped by their material type and are rendered in the following order:
+    /// - Deferred objects are rendered first and are sorted by their distance to the viewer.
+    /// - Forward objects are rendered afterwards and are not sorted.
+    pub fn render_partially_tmp(
+        &self,
+        scissor_box: ScissorBox,
+        viewer: impl Viewer,
+        objects: impl IntoIterator<Item = impl Object>,
+        lights: &[&dyn Light],
+    ) -> &Self {
+        let frustum = Frustum::new(viewer.projection() * viewer.view());
+        let (mut deferred_objects, mut forward_objects): (Vec<_>, Vec<_>) = objects
+            .into_iter()
+            .filter(|o| frustum.contains(o.aabb()))
+            .partition(|o| o.material_type() == MaterialType::Deferred);
+
+        // Deferred
+        if !deferred_objects.is_empty() {
+            // Geometry pass
+            let geometry_pass_camera = GeometryPassCamera(&viewer);
+            let viewport = geometry_pass_camera.viewport();
+            deferred_objects.sort_by(|a, b| cmp_render_order(&geometry_pass_camera, a, b));
+            let mut geometry_pass_texture = Texture2DArray::new_empty::<[u8; 4]>(
+                &self.context,
+                viewport.width,
+                viewport.height,
+                3,
+                Interpolation::Nearest,
+                Interpolation::Nearest,
+                None,
+                Wrapping::ClampToEdge,
+                Wrapping::ClampToEdge,
+            );
+            let mut geometry_pass_depth_texture = DepthTexture2D::new::<f32>(
+                &self.context,
+                viewport.width,
+                viewport.height,
+                Wrapping::ClampToEdge,
+                Wrapping::ClampToEdge,
+            );
+            let gbuffer_layers = [0, 1, 2];
+            RenderTarget::new(
+                geometry_pass_texture.as_color_target(&gbuffer_layers, None),
+                geometry_pass_depth_texture.as_depth_target(),
+            )
+            .clear(ClearState::default())
+            .write::<RendererError>(|| {
+                for object in deferred_objects {
+                    object.render(&geometry_pass_camera, lights);
+                }
+                Ok(())
+            })
+            .unwrap();
+
+            // Lighting pass
+            self.apply_screen_effect_partially(
+                scissor_box,
+                &lighting_pass::LightingPassEffect {},
+                &viewer,
+                lights,
+                Some(ColorTexture::Array {
+                    texture: &geometry_pass_texture,
+                    layers: &gbuffer_layers,
+                }),
+                Some(DepthTexture::Single(&geometry_pass_depth_texture)),
+            );
+        }
+
+        // Forward
+        let (transparent_objects, opaque_objects): (Vec<_>, Vec<_>) = forward_objects
+            .iter()
+            .filter(|o| frustum.contains(o.aabb()))
+            .partition(|o| o.material_type() == MaterialType::TransparentOIT);
+
+        self.write_partially::<RendererError>(scissor_box, || {
+            for object in opaque_objects {
+                object.render(&viewer, lights);
+            }
+            Ok(())
+        })
+        .unwrap();
+
+        if !transparent_objects.is_empty() {
+            // Opaque pass
+            let geometry_pass_camera = GeometryPassCamera(&viewer);
+            let viewport = geometry_pass_camera.viewport();
+
+            // Transparent pass
+
+            let transparent_color_accum = Texture2D::new_empty::<[f16; 4]>(
+                &self.context,
+                viewport.width,
+                viewport.height,
+                Interpolation::Nearest,
+                Interpolation::Nearest,
+                None,
+                Wrapping::ClampToEdge,
+                Wrapping::ClampToEdge,
+            );
+            // transparent_color_accum.fill(&[0.0, 0.0, 0.0, 0.0]);
+            let transparent_alpha_accum = Texture2D::new_empty::<f32>(
+                &self.context,
+                viewport.width,
+                viewport.height,
+                Interpolation::Nearest,
+                Interpolation::Nearest,
+                None,
+                Wrapping::ClampToEdge,
+                Wrapping::ClampToEdge,
+            );
+            // transparent_alpha_accum.fill(&[1.0]);
+            let transparent_buffers = [&transparent_color_accum, &transparent_alpha_accum];
+
+            ColorTarget::new_texture2d_list(&self.context, &transparent_buffers, None)
+                .clear(ClearState::color(0.0, 0.0, 0.0, 1.0))
+                .write::<RendererError>(|| {
+                    for object in transparent_objects {
+                        object.render(&geometry_pass_camera, lights);
+                    }
+                    Ok(())
+                })
+                .unwrap();
+
+            // Composite pass
+            self.apply_screen_effect(
+                &OitResolveEffect::default(),
+                &viewer,
+                lights,
+                Some(ColorTexture::List(&transparent_buffers)),
+                None,
+            );
+        } else {
+            forward_objects.sort_by(|a, b| cmp_render_order(&viewer, a, b));
+            self.write_partially::<RendererError>(scissor_box, || {
+                for object in forward_objects {
+                    object.render(&viewer, lights);
+                }
+                Ok(())
+            })
+            .unwrap();
+        }
+        self
     }
 }

@@ -38,6 +38,17 @@ in vec4 col;
 
 layout (location = 0) out vec4 outColor;
 
+#ifdef USE_OIT
+layout (location = 1) out float accumAlpha;
+#endif
+
+#ifdef USE_OIT
+float weight(float z, float a)
+{
+    return clamp(pow(min(1.0, a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - z * 0.9, 3.0), 1e-2, 3e3);
+}
+#endif
+
 void main()
 {
     vec4 surface_color = albedo * col;
@@ -79,4 +90,20 @@ void main()
     outColor.rgb = tone_mapping(outColor.rgb);
     outColor.rgb = color_mapping(outColor.rgb);
     outColor.a = surface_color.a;
+
+#ifdef USE_OIT
+    float w = weight(gl_FragCoord.z, surface_color.a);
+
+    // In vertex shader:
+    // float w = gl_Position.z / gl_Position.w;
+    // fWeight = 100.0 * exp(-0.001 * w * w);
+	
+    // Blend Func: GL_ONE, GL_ONE
+    // gl_FragData[0] = vec4(c.rgb * fWeight, c.a);
+    outColor.rgb = w * outColor.rgb;
+
+    // Blend Func: GL_ZERO, GL_ONE_MINUS_SRC_ALPHA
+    // gl_FragData[1] = c.a * fWeight * vec4(1.,1.,1.,1.);
+    accumAlpha = surface_color.a * w;
+#endif
 }

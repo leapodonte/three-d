@@ -129,7 +129,7 @@ impl PhysicalMaterial {
             render_states: if is_transparent {
                 RenderStates {
                     write_mask: WriteMask::COLOR,
-                    blend: Blend::TRANSPARENCY,
+                    blend: Blend::OIT_TRANSPARENCY,
                     ..Default::default()
                 }
             } else {
@@ -140,6 +140,44 @@ impl PhysicalMaterial {
             emissive_texture,
             lighting_model: cpu_material.lighting_model,
         }
+    }
+
+    ///
+    /// Constructs a new physical material with the given albedo.
+    ///
+    pub fn new_with_albedo(albedo: Srgba) -> Self {
+        let mut mat = PhysicalMaterial::default();
+        mat.set_albedo(albedo);
+        mat
+    }
+
+    ///
+    /// Changes the albedo.
+    ///
+    pub fn set_albedo(&mut self, albedo: Srgba) {
+        self.albedo = albedo;
+        self.set_alpha(albedo.a);
+    }
+
+    ///
+    /// Changes the transparency.
+    /// Also sets the render states accordingly.
+    ///
+    pub fn set_alpha(&mut self, alpha: u8) {
+        self.albedo.a = alpha;
+        self.is_transparent = alpha < 255;
+        if self.is_transparent {
+            self.render_states.write_mask = WriteMask::COLOR;
+            self.render_states.blend = Blend::OIT_TRANSPARENCY;
+        } else {
+            self.render_states.write_mask = WriteMask::COLOR_AND_DEPTH;
+            self.render_states.blend = Blend::Disabled;
+        }
+    }
+
+    /// Returns whether this material is a transparent material
+    pub fn is_transparent(&self) -> bool {
+        self.is_transparent || self.albedo.a < 255
     }
 }
 
@@ -157,6 +195,7 @@ impl Material for PhysicalMaterial {
             self.occlusion_texture.is_some(),
             self.normal_texture.is_some(),
             self.emissive_texture.is_some(),
+            self.is_transparent(),
         )
     }
 
@@ -184,6 +223,9 @@ impl Material for PhysicalMaterial {
             if self.emissive_texture.is_some() {
                 output.push_str("#define USE_EMISSIVE_TEXTURE;\n");
             }
+        }
+        if self.is_transparent() {
+            output.push_str("#define USE_OIT\n");
         }
         output.push_str(ToneMapping::fragment_shader_source());
         output.push_str(ColorMapping::fragment_shader_source());
@@ -239,11 +281,17 @@ impl Material for PhysicalMaterial {
     }
 
     fn render_states(&self) -> RenderStates {
-        self.render_states
+        let mut render_states = self.render_states;
+        if self.is_transparent() {
+            render_states.write_mask.depth = false;
+            render_states.blend = Blend::OIT_TRANSPARENCY;
+        }
+        render_states
     }
+
     fn material_type(&self) -> MaterialType {
-        if self.is_transparent {
-            MaterialType::Transparent
+        if self.is_transparent() {
+            MaterialType::TransparentOIT
         } else {
             MaterialType::Opaque
         }
