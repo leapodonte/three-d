@@ -23,14 +23,14 @@ void main()
     ivec2 coords = ivec2(gl_FragCoord.xy);
 
     // fragment accumAlpha
-    float accumAlpha = texelFetch(colorMap, ivec3(coords, 1), 0).r;
+    float accumAlpha = texelFetch(accumAlphaMap, coords, 0).r;
 
     // save the blending and color texture fetch cost if there is not a transparent fragment
     if (isApproximatelyEqual(accumAlpha, 1.0f))
         discard;
 
     // fragment color
-    vec4 accumColor = texelFetch(colorMap, ivec3(coords, 0), 0);
+    vec4 accumColor = texelFetch(accumColorMap, coords, 0);
 
     // suppress overflow
     if (isinf(max3(abs(accumColor.rgb))))
@@ -41,6 +41,4 @@ void main()
 
     // blend pixels
     outColor = vec4(average_color, 1.0f - accumAlpha);
-
-    gl_FragDepth = sample_depth(coords);
 }
