@@ -177,6 +177,7 @@ impl ColorTexture<'_> {
     ///
     pub fn id(&self) -> u16 {
         match self {
+            // NOTE: I'm not sure if this is correct.
             Self::Single { .. } => 1u16 << 0,
             Self::Array { .. } => 1u16 << 1,
             Self::List { .. } => 1u16 << 2,

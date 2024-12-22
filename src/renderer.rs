@@ -201,7 +201,7 @@ macro_rules! impl_render_target_extensions_body {
                     &buffer_names,
                     None,
                 )
-                .clear(ClearState::color(0.0, 0.0, 0.0, 0.0))
+                .clear(ClearState::color(0.0, 0.0, 0.0, 1.0))
                 .write::<RendererError>(|| {
                     for object in transparent_objects {
                         object.render(&geometry_pass_camera, lights);

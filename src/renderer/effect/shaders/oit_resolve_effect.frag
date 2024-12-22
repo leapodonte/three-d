@@ -19,26 +19,9 @@ float max3(vec3 v)
 
 void main()
 {
-    // fragment coordinates
-    ivec2 coords = ivec2(gl_FragCoord.xy);
-
-    // fragment accumAlpha
-    float accumAlpha = texelFetch(accumAlphaMap, coords, 0).r;
-
-    // save the blending and color texture fetch cost if there is not a transparent fragment
-    if (isApproximatelyEqual(accumAlpha, 1.0f))
-        discard;
-
-    // fragment color
-    vec4 accumColor = texelFetch(accumColorMap, coords, 0);
-
-    // suppress overflow
-    if (isinf(max3(abs(accumColor.rgb))))
-        accumColor.rgb = vec3(accumColor.a);
-
-    // prevent floating point precision bug
-    vec3 average_color = accumColor.rgb / max(accumColor.a, EPSILON);
-
-    // blend pixels
-    outColor = vec4(average_color, 1.0f - accumAlpha);
+    ivec2 fragCoord = ivec2(gl_FragCoord.xy);
+    vec4 accum = texelFetch(accumColorMap, fragCoord, 0);
+    float a = 1.0 - accum.a;
+    accum.a = texelFetch(accumAlphaMap, fragCoord, 0).r;
+    outColor = vec4(a * accum.rgb / clamp(accum.a, 0.001, 50000.0), a);
 }
