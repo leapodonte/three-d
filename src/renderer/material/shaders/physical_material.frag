@@ -87,8 +87,6 @@ void main()
 #endif
 
     outColor.rgb = total_emissive + calculate_lighting(cameraPosition, surface_color.rgb, pos, normal, metallic_factor, roughness_factor, occlusion);
-    outColor.rgb = tone_mapping(outColor.rgb);
-    outColor.rgb = color_mapping(outColor.rgb);
     outColor.a = surface_color.a;
 
 #ifdef USE_OIT
@@ -97,5 +95,8 @@ void main()
     float w = weight(gl_FragCoord.z, color.a);
     outColor = vec4(color.rgb * w, color.a);
     accumAlpha = color.a * w;
+#else
+    outColor.rgb = tone_mapping(outColor.rgb);
+    outColor.rgb = color_mapping(outColor.rgb);
 #endif
 }

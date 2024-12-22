@@ -24,4 +24,6 @@ void main()
     float a = 1.0 - accum.a;
     accum.a = texelFetch(accumAlphaMap, fragCoord, 0).r;
     outColor = vec4(a * accum.rgb / clamp(accum.a, 0.001, 50000.0), a);
+    outColor.rgb = tone_mapping(outColor.rgb);
+    outColor.rgb = color_mapping(outColor.rgb);
 }

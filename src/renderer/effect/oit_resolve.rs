@@ -32,14 +32,16 @@ impl Effect for OitResolveEffect {
         depth_texture: Option<DepthTexture>,
     ) -> String {
         format!(
-            "{}\n{}\n{}",
-            color_texture
+            "{color}\n{depth}\n{tone_mapping}\n{color_mapping}\n{shader}",
+            color = color_texture
                 .map(|t| t.fragment_shader_source())
                 .unwrap_or("".to_string()),
-            depth_texture
+            depth = depth_texture
                 .map(|t| t.fragment_shader_source())
                 .unwrap_or("".to_string()),
-            include_str!("shaders/oit_resolve_effect.frag"),
+            tone_mapping = ToneMapping::fragment_shader_source(),
+            color_mapping = ColorMapping::fragment_shader_source(),
+            shader = include_str!("shaders/oit_resolve_effect.frag"),
         )
     }
 
@@ -54,7 +56,7 @@ impl Effect for OitResolveEffect {
     fn use_uniforms(
         &self,
         program: &Program,
-        _viewer: &dyn Viewer,
+        viewer: &dyn Viewer,
         _lights: &[&dyn crate::Light],
         color_texture: Option<ColorTexture>,
         depth_texture: Option<DepthTexture>,
@@ -65,6 +67,8 @@ impl Effect for OitResolveEffect {
         if let Some(depth_texture) = depth_texture {
             depth_texture.use_uniforms(program);
         }
+        viewer.tone_mapping().use_uniforms(program);
+        viewer.color_mapping().use_uniforms(program);
     }
 
     fn render_states(&self) -> RenderStates {
