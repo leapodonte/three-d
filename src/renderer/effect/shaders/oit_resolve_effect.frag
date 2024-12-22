@@ -20,10 +20,10 @@ float max3(vec3 v)
 void main()
 {
     ivec2 fragCoord = ivec2(gl_FragCoord.xy);
-    vec4 accum = texelFetch(accumColorMap, fragCoord, 0);
-    float a = 1.0 - accum.a;
-    accum.a = texelFetch(accumAlphaMap, fragCoord, 0).r;
-    outColor = vec4(a * accum.rgb / clamp(accum.a, 0.001, 50000.0), a);
+    vec4 accumColor = texelFetch(accumColorMap, fragCoord, 0);
+    float alpha = accumColor.a;
+    float accumAlpha = texelFetch(accumAlphaMap, fragCoord, 0).r;
+    outColor = vec4(accumColor.rgb / clamp(accumAlpha, 1e-4, 5e4), alpha);
     outColor.rgb = tone_mapping(outColor.rgb);
     outColor.rgb = color_mapping(outColor.rgb);
 }

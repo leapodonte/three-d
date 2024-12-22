@@ -13,10 +13,10 @@ impl Default for OitResolveEffect {
     fn default() -> Self {
         Self {
             blend: Blend::Enabled {
-                source_rgb_multiplier: BlendMultiplierType::SrcAlpha,
-                source_alpha_multiplier: BlendMultiplierType::SrcAlpha,
-                destination_rgb_multiplier: BlendMultiplierType::OneMinusSrcAlpha,
-                destination_alpha_multiplier: BlendMultiplierType::OneMinusSrcAlpha,
+                source_rgb_multiplier: BlendMultiplierType::OneMinusSrcAlpha,
+                source_alpha_multiplier: BlendMultiplierType::OneMinusSrcAlpha,
+                destination_rgb_multiplier: BlendMultiplierType::SrcAlpha,
+                destination_alpha_multiplier: BlendMultiplierType::SrcAlpha,
                 rgb_equation: BlendEquationType::Add,
                 alpha_equation: BlendEquationType::Add,
             },

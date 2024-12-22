@@ -45,9 +45,19 @@ layout (location = 1) out float accumAlpha;
 #ifdef USE_OIT
 float weight(float z, float a)
 {
+    // return (1 - z) * 10; // a * (1 + (1 + z));
+    // return clamp(pow(abs(z), -5), 1e-2, 3e3);
+    // float k = 0.01;
+    // return clamp(10 / (1 + 10 * pow(abs(z * k), 5)), 1e-2, 3e3);
+    // return 1e-2 * z;
+    // return clamp(10 / (1e-5 + pow(abs(z)/5, 2) + pow(abs(z)/200, 6)), 1e-2, 3e3);
+    // return clamp(pow(z, -4), 1e-2, 3e3);
+    // return clamp(10 / (1e-5 + pow(abs(z)/5, 3) + pow(abs(z)/200, 6)), 1e-2, 3e3);
+    // return clamp(0.03 / (1e-5 + pow(abs(z)/200, 4)), 1e-2, 3e3);
+    // return clamp(0.03 / (1e-5 + pow(abs(z)/200, 4)), 1e-2, 3e3);
     return clamp(pow(min(1.0, a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - z * 0.9, 3.0), 1e-2, 3e3);
 }
-#endif
+#endif  
 
 void main()
 {
@@ -91,10 +101,9 @@ void main()
 
 #ifdef USE_OIT
     vec4 color = outColor;
-    color.rgb *= color.a;
-    float w = weight(gl_FragCoord.z, color.a);
+    float w = color.a * weight(gl_FragCoord.z, color.a);
     outColor = vec4(color.rgb * w, color.a);
-    accumAlpha = color.a * w;
+    accumAlpha = w;
 #else
     outColor.rgb = tone_mapping(outColor.rgb);
     outColor.rgb = color_mapping(outColor.rgb);
