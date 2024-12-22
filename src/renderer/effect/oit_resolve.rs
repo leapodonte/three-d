@@ -70,8 +70,8 @@ impl Effect for OitResolveEffect {
     fn render_states(&self) -> RenderStates {
         RenderStates {
             depth_test: DepthTest::Always,
-            cull: Cull::Back,
-            write_mask: WriteMask::COLOR_AND_DEPTH,
+            cull: Cull::None,
+            write_mask: WriteMask::COLOR,
             blend: self.blend,
             line_width: 1.0,
         }

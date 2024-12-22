@@ -92,7 +92,7 @@ macro_rules! impl_render_target_extensions_body {
             lights: &[&dyn Light],
         ) -> &Self {
             let frustum = Frustum::new(viewer.projection() * viewer.view());
-            let (mut deferred_objects, mut forward_objects): (Vec<_>, Vec<_>) = objects
+            let (mut deferred_objects, forward_objects): (Vec<_>, Vec<_>) = objects
                 .into_iter()
                 .filter(|o| frustum.contains(o.aabb()))
                 .partition(|o| o.material_type() == MaterialType::Deferred);
@@ -150,11 +150,13 @@ macro_rules! impl_render_target_extensions_body {
             }
 
             // Forward
-            let (transparent_objects, opaque_objects): (Vec<_>, Vec<_>) = forward_objects
+            let (transparent_objects, mut opaque_objects): (Vec<_>, Vec<_>) = forward_objects
                 .iter()
                 .filter(|o| frustum.contains(o.aabb()))
                 .partition(|o| o.material_type() == MaterialType::TransparentOIT);
 
+            // Opaque pass
+            opaque_objects.sort_by(|a, b| cmp_render_order(&viewer, a, b));
             self.write_partially::<RendererError>(scissor_box, || {
                 for object in opaque_objects {
                     object.render(&viewer, lights);
@@ -164,12 +166,22 @@ macro_rules! impl_render_target_extensions_body {
             .unwrap();
 
             if !transparent_objects.is_empty() {
-                // Opaque pass
-                let geometry_pass_camera = GeometryPassCamera(&viewer);
-                let viewport = geometry_pass_camera.viewport();
+                let camera = GeometryPassCamera(&viewer);
+                let viewport = camera.viewport();
+
+                // Read depth from back buffer
+                let mut depth_texture = DepthTexture2D::new::<f32>(
+                    &self.context,
+                    viewport.width,
+                    viewport.height,
+                    Wrapping::ClampToEdge,
+                    Wrapping::ClampToEdge,
+                );
+                let depth_target = depth_texture.as_depth_target();
+                RenderTarget::screen(&self.context, viewport.width, viewport.height)
+                    .blit_to(&depth_target.as_render_target());
 
                 // Transparent pass
-
                 let transparent_color_accum = Texture2D::new_empty::<[f16; 4]>(
                     &self.context,
                     viewport.width,
@@ -195,16 +207,19 @@ macro_rules! impl_render_target_extensions_body {
                 let transparent_buffers = [&transparent_color_accum, &transparent_alpha_accum];
                 let buffer_names = ["accumColorMap", "accumAlphaMap"];
 
-                ColorTarget::new_texture2d_list(
-                    &self.context,
-                    &transparent_buffers,
-                    &buffer_names,
-                    None,
+                RenderTarget::new(
+                    ColorTarget::new_texture2d_list(
+                        &self.context,
+                        &transparent_buffers,
+                        &buffer_names,
+                        None,
+                    ),
+                    depth_target,
                 )
                 .clear(ClearState::color(0.0, 0.0, 0.0, 1.0))
                 .write::<RendererError>(|| {
                     for object in transparent_objects {
-                        object.render(&geometry_pass_camera, lights);
+                        object.render(&camera, lights);
                     }
                     Ok(())
                 })
@@ -221,15 +236,6 @@ macro_rules! impl_render_target_extensions_body {
                     }),
                     None,
                 );
-            } else {
-                forward_objects.sort_by(|a, b| cmp_render_order(&viewer, a, b));
-                self.write_partially::<RendererError>(scissor_box, || {
-                    for object in forward_objects {
-                        object.render(&viewer, lights);
-                    }
-                    Ok(())
-                })
-                .unwrap();
             }
             self
         }
