@@ -61,14 +61,27 @@ impl TextureDataType for Quat {}
 /// The basic data type used for each pixel in a depth texture.
 pub trait DepthTextureDataType: DepthDataType {}
 
-/// 24 bit float which can be used as [DepthTextureDataType].
+/// 24 bit unsigned int which can be used as [DepthTextureDataType].
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Default, Debug)]
-pub struct f24 {}
+pub struct u24 {}
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Default, Debug)]
+/// 24 bit unsigned int and 8 bit unsigned int which can be used as [DepthTextureDataType].
+/// This is the default format of the depth framebuffer. Use it to read from the depth buffer.
+pub struct u24u8 {}
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Default, Debug)]
+/// 32 bit float and 8 bit unsigned int which can be used as [DepthTextureDataType].
+pub struct f32u8 {}
 
 impl DepthTextureDataType for f16 {}
-impl DepthTextureDataType for f24 {}
+impl DepthTextureDataType for u24 {}
+#[cfg(not(target_arch = "wasm32"))]
+impl DepthTextureDataType for u32 {}
 impl DepthTextureDataType for f32 {}
+impl DepthTextureDataType for u24u8 {}
+impl DepthTextureDataType for f32u8 {}
 
 ///
 /// A reference to some type of texture containing colors.

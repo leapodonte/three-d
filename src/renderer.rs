@@ -170,7 +170,7 @@ macro_rules! impl_render_target_extensions_body {
                 let viewport = camera.viewport();
 
                 // Read depth from back buffer
-                let mut depth_texture = DepthTexture2D::new::<f32>(
+                let mut depth_texture = DepthTexture2D::new::<u24u8>(
                     &self.context,
                     viewport.width,
                     viewport.height,
