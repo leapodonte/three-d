@@ -10,6 +10,8 @@ use three_d::*;
 */
 
 pub fn main() {
+    env_logger::init();
+
     let window = Window::new(WindowSettings {
         title: "Instanced Draw Order".to_string(),
         max_size: Some((1280, 720)),
