@@ -40,6 +40,17 @@ impl DepthTexture2D {
             None,
         );
         unsafe {
+            // context.tex_image_2d(
+            //     crate::context::TEXTURE_2D,
+            //     0,
+            //     T::internal_format() as i32, // Bug in glow, should be u32
+            //     width as i32,
+            //     height as i32,
+            //     0,
+            //     crate::context::DEPTH_COMPONENT,
+            //     T::internal_type(),
+            //     None,
+            // );
             context.tex_storage_2d(
                 crate::context::TEXTURE_2D,
                 1,

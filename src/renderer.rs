@@ -169,6 +169,8 @@ macro_rules! impl_render_target_extensions_body {
                 let camera = GeometryPassCamera(&viewer);
                 let viewport = camera.viewport();
 
+                // let mut depth_texture = self.test_depth_buffer_size();
+
                 // Read depth from back buffer
                 let mut depth_texture = DepthTexture2D::new::<u24u8>(
                     &self.context,
@@ -791,5 +793,135 @@ impl<T: Viewer> Viewer for GeometryPassCamera<T> {
 
     fn tone_mapping(&self) -> ToneMapping {
         self.0.tone_mapping()
+    }
+}
+
+macro_rules! impl_render_target_test_body {
+    () => {
+        fn test_depth_buffer_size(&self) -> DepthTexture2D {
+            DepthTexture2D::new::<u24u8>(
+                &self.context,
+                self.viewport().width,
+                self.viewport().height,
+                Wrapping::ClampToEdge,
+                Wrapping::ClampToEdge,
+            )
+        }
+    };
+}
+
+macro_rules! impl_render_target_test {
+    // 2 generic arguments with bounds
+    ($name:ident < $a:ident : $ta:tt , $b:ident : $tb:tt >) => {
+        impl<$a: $ta, $b: $tb> $name<$a, $b> {
+            impl_render_target_test_body!();
+        }
+    };
+    // 1 generic argument with bound
+    ($name:ident < $a:ident : $ta:tt >) => {
+        impl<$a: $ta> $name<$a> {
+            impl_render_target_test_body!();
+        }
+    };
+    // 1 liftetime argument
+    ($name:ident < $lt:lifetime >) => {
+        impl<$lt> $name<$lt> {
+            impl_render_target_test_body!();
+        }
+    };
+    // without any arguments
+    ($name:ty) => {
+        impl $name {
+            impl_render_target_test_body!();
+        }
+    };
+}
+
+impl_render_target_test!(ColorTarget<'a>);
+impl_render_target_test!(DepthTarget<'a>);
+impl_render_target_test!(
+    RenderTargetMultisample<C: TextureDataType, D: DepthTextureDataType>
+);
+impl_render_target_test!(ColorTargetMultisample<C: TextureDataType>);
+impl_render_target_test!(DepthTargetMultisample<D: DepthTextureDataType>);
+
+/// Debug macro
+#[macro_export]
+macro_rules! debug {
+    ($fmt_string:expr) => {
+        #[cfg(not(target_arch = "wasm32"))]
+        eprintln!($fmt_string);
+        #[cfg(target_arch = "wasm32")]
+        log::debug!($fmt_string);
+    };
+    ($fmt_string:expr, $( $arg:expr ),*) => {
+        #[cfg(not(target_arch = "wasm32"))]
+        eprintln!($fmt_string, $( $arg ),*);
+        #[cfg(target_arch = "wasm32")]
+        log::debug!($fmt_string, $( $arg ),*);
+    };
+    () => {
+        #[cfg(not(target_arch = "wasm32"))]
+        eprintln!();
+        #[cfg(target_arch = "wasm32")]
+        log::debug!();
+    };
+}
+
+impl RenderTarget<'_> {
+    fn test_depth_buffer_size(&self) -> DepthTexture2D {
+        #[allow(unsafe_code)]
+        let depth_size = unsafe {
+            self.context.get_framebuffer_attachment_parameter_i32(
+                crate::context::DRAW_FRAMEBUFFER,
+                crate::context::DEPTH,
+                crate::context::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE,
+            )
+        };
+
+        #[allow(unsafe_code)]
+        let stencil_size = unsafe {
+            let object_type = self.context.get_framebuffer_attachment_parameter_i32(
+                crate::context::DRAW_FRAMEBUFFER,
+                crate::context::STENCIL,
+                crate::context::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+            );
+            if object_type as u32 != crate::context::NONE {
+                self.context.get_framebuffer_attachment_parameter_i32(
+                    crate::context::DRAW_FRAMEBUFFER,
+                    crate::context::STENCIL,
+                    crate::context::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE,
+                )
+            } else {
+                0
+            }
+        };
+
+        log::warn!("Depth size: {depth_size}, stencil size: {stencil_size}");
+
+        #[allow(unsafe_code)]
+        let e = unsafe { self.context.get_error() };
+
+        if e != crate::context::NO_ERROR {
+            let msg = match e {
+                crate::context::INVALID_ENUM => "Invalid enum",
+                crate::context::INVALID_VALUE => "Invalid value",
+                crate::context::INVALID_OPERATION => "Invalid operation",
+                crate::context::INVALID_FRAMEBUFFER_OPERATION => "Invalid framebuffer operation",
+                crate::context::OUT_OF_MEMORY => "Out of memory",
+                crate::context::STACK_OVERFLOW => "Stack overflow",
+                crate::context::STACK_UNDERFLOW => "Stack underflow",
+                _ => "Unknown",
+            };
+            log::error!("{msg}");
+        }
+
+        DepthTexture2D::new::<u24u8>(
+            &self.context,
+            self.viewport().width,
+            self.viewport().height,
+            Wrapping::ClampToEdge,
+            Wrapping::ClampToEdge,
+        )
     }
 }
