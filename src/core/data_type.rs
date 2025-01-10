@@ -19,6 +19,7 @@ pub trait PrimitiveDataType: DataType + Copy + Default {
         type_: UniformType,
     );
     fn internal_format_with_size(size: u32) -> u32;
+    fn format_with_size(size: u32) -> u32;
 }
 
 impl PrimitiveDataType for u8 {
@@ -28,6 +29,16 @@ impl PrimitiveDataType for u8 {
             2 => crate::context::RG8,
             3 => crate::context::RGB8,
             4 => crate::context::RGBA8,
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
             _ => unreachable!(),
         }
     }
@@ -53,6 +64,16 @@ impl PrimitiveDataType for u16 {
         }
     }
 
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
+            _ => unreachable!(),
+        }
+    }
+
     fn send_uniform_with_type(
         context: &Context,
         location: &UniformLocation,
@@ -70,6 +91,16 @@ impl PrimitiveDataType for u32 {
             2 => crate::context::RG32UI,
             3 => crate::context::RGB32UI,
             4 => crate::context::RGBA32UI,
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
             _ => unreachable!(),
         }
     }
@@ -102,6 +133,16 @@ impl PrimitiveDataType for i8 {
         }
     }
 
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
+            _ => unreachable!(),
+        }
+    }
+
     fn send_uniform_with_type(
         context: &Context,
         location: &UniformLocation,
@@ -123,6 +164,16 @@ impl PrimitiveDataType for i16 {
         }
     }
 
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
+            _ => unreachable!(),
+        }
+    }
+
     fn send_uniform_with_type(
         context: &Context,
         location: &UniformLocation,
@@ -140,6 +191,16 @@ impl PrimitiveDataType for i32 {
             2 => crate::context::RG32I,
             3 => crate::context::RGB32I,
             4 => crate::context::RGBA32I,
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED_INTEGER,
+            2 => crate::context::RG_INTEGER,
+            3 => crate::context::RGB_INTEGER,
+            4 => crate::context::RGBA_INTEGER,
             _ => unreachable!(),
         }
     }
@@ -172,6 +233,16 @@ impl PrimitiveDataType for f16 {
         }
     }
 
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED,
+            2 => crate::context::RG,
+            3 => crate::context::RGB,
+            4 => crate::context::RGBA,
+            _ => unreachable!(),
+        }
+    }
+
     fn send_uniform_with_type(
         context: &Context,
         location: &UniformLocation,
@@ -189,6 +260,16 @@ impl PrimitiveDataType for f32 {
             2 => crate::context::RG32F,
             3 => crate::context::RGB32F,
             4 => crate::context::RGBA32F,
+            _ => unreachable!(),
+        }
+    }
+
+    fn format_with_size(size: u32) -> u32 {
+        match size {
+            1 => crate::context::RED,
+            2 => crate::context::RG,
+            3 => crate::context::RGB,
+            4 => crate::context::RGBA,
             _ => unreachable!(),
         }
     }
@@ -221,6 +302,7 @@ impl PrimitiveDataType for f32 {
 
 pub trait DataType: std::fmt::Debug + Clone {
     fn internal_format() -> u32;
+    fn format() -> u32;
     fn data_type() -> u32;
     fn size() -> u32;
     fn normalized() -> bool {
@@ -232,6 +314,9 @@ pub trait DataType: std::fmt::Debug + Clone {
 impl<T: DataType> DataType for &T {
     fn internal_format() -> u32 {
         T::internal_format()
+    }
+    fn format() -> u32 {
+        T::format()
     }
     fn data_type() -> u32 {
         T::data_type()
@@ -257,6 +342,10 @@ impl DataType for u8 {
         Self::internal_format_with_size(1)
     }
 
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::UNSIGNED_BYTE
     }
@@ -274,6 +363,11 @@ impl DataType for u16 {
     fn internal_format() -> u32 {
         Self::internal_format_with_size(1)
     }
+
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::UNSIGNED_SHORT
     }
@@ -290,6 +384,10 @@ impl DataType for u16 {
 impl DataType for u32 {
     fn internal_format() -> u32 {
         Self::internal_format_with_size(1)
+    }
+
+    fn format() -> u32 {
+        Self::format_with_size(1)
     }
 
     fn data_type() -> u32 {
@@ -310,6 +408,10 @@ impl DataType for i8 {
         Self::internal_format_with_size(1)
     }
 
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::BYTE
     }
@@ -326,6 +428,10 @@ impl DataType for i8 {
 impl DataType for i16 {
     fn internal_format() -> u32 {
         Self::internal_format_with_size(1)
+    }
+
+    fn format() -> u32 {
+        Self::format_with_size(1)
     }
 
     fn data_type() -> u32 {
@@ -346,6 +452,10 @@ impl DataType for i32 {
         Self::internal_format_with_size(1)
     }
 
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::INT
     }
@@ -363,6 +473,11 @@ impl DataType for f16 {
     fn internal_format() -> u32 {
         Self::internal_format_with_size(1)
     }
+
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::HALF_FLOAT
     }
@@ -381,6 +496,10 @@ impl DataType for f32 {
         Self::internal_format_with_size(1)
     }
 
+    fn format() -> u32 {
+        Self::format_with_size(1)
+    }
+
     fn data_type() -> u32 {
         crate::context::FLOAT
     }
@@ -397,6 +516,10 @@ impl DataType for f32 {
 impl<T: PrimitiveDataType> DataType for Vector2<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
+    }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
     }
 
     fn data_type() -> u32 {
@@ -418,6 +541,10 @@ impl<T: PrimitiveDataType> DataType for [T; 2] {
         T::internal_format_with_size(Self::size())
     }
 
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
+    }
+
     fn data_type() -> u32 {
         T::data_type()
     }
@@ -436,6 +563,11 @@ impl<T: PrimitiveDataType> DataType for Vector3<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
     }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
+    }
+
     fn data_type() -> u32 {
         T::data_type()
     }
@@ -457,6 +589,11 @@ impl<T: PrimitiveDataType> DataType for [T; 3] {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
     }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
+    }
+
     fn data_type() -> u32 {
         T::data_type()
     }
@@ -474,6 +611,10 @@ impl<T: PrimitiveDataType> DataType for [T; 3] {
 impl<T: PrimitiveDataType> DataType for Vector4<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
+    }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
     }
 
     fn data_type() -> u32 {
@@ -498,6 +639,10 @@ impl<T: PrimitiveDataType> DataType for [T; 4] {
         T::internal_format_with_size(Self::size())
     }
 
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
+    }
+
     fn data_type() -> u32 {
         T::data_type()
     }
@@ -515,6 +660,10 @@ impl<T: PrimitiveDataType> DataType for [T; 4] {
 impl<T: PrimitiveDataType> DataType for Quaternion<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
+    }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
     }
 
     fn data_type() -> u32 {
@@ -539,6 +688,10 @@ impl<T: PrimitiveDataType> DataType for Matrix2<T> {
         T::internal_format_with_size(Self::size())
     }
 
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
+    }
+
     fn data_type() -> u32 {
         T::data_type()
     }
@@ -559,6 +712,10 @@ impl<T: PrimitiveDataType> DataType for Matrix2<T> {
 impl<T: PrimitiveDataType> DataType for Matrix3<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
+    }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
     }
 
     fn data_type() -> u32 {
@@ -585,6 +742,10 @@ impl<T: PrimitiveDataType> DataType for Matrix3<T> {
 impl<T: PrimitiveDataType> DataType for Matrix4<T> {
     fn internal_format() -> u32 {
         T::internal_format_with_size(Self::size())
+    }
+
+    fn format() -> u32 {
+        T::format_with_size(Self::size())
     }
 
     fn data_type() -> u32 {

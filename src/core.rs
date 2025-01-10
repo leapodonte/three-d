@@ -105,6 +105,11 @@ use data_type::DataType;
 fn to_byte_slice<T: DataType>(data: &[T]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const _, std::mem::size_of_val(data)) }
 }
+fn to_byte_slice_mut<T: DataType>(data: &mut [T]) -> &mut [u8] {
+    unsafe {
+        std::slice::from_raw_parts_mut(data.as_mut_ptr() as *mut _, std::mem::size_of_val(data))
+    }
+}
 
 fn from_byte_slice<T: DataType>(data: &[u8]) -> &[T] {
     unsafe {
@@ -114,13 +119,7 @@ fn from_byte_slice<T: DataType>(data: &[u8]) -> &[T] {
 }
 
 fn format_from_data_type<T: DataType>() -> u32 {
-    match T::size() {
-        1 => crate::context::RED,
-        2 => crate::context::RG,
-        3 => crate::context::RGB,
-        4 => crate::context::RGBA,
-        _ => unreachable!(),
-    }
+    T::format()
 }
 
 fn flip_y<T: TextureDataType>(pixels: &mut [T], width: usize, height: usize) {

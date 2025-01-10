@@ -19,6 +19,10 @@ mod uniform_buffer;
 #[doc(inline)]
 pub use uniform_buffer::*;
 
+mod atomic_counter_buffer;
+#[doc(inline)]
+pub use atomic_counter_buffer::*;
+
 use crate::core::*;
 use data_type::*;
 

@@ -166,74 +166,7 @@ macro_rules! impl_render_target_extensions_body {
             .unwrap();
 
             if !transparent_objects.is_empty() {
-                let camera = GeometryPassCamera(&viewer);
-                let viewport = camera.viewport();
-
-                // Read depth from back buffer
-                let mut depth_texture = DepthTexture2D::new::<u24u8>(
-                    &self.context,
-                    viewport.width,
-                    viewport.height,
-                    Wrapping::ClampToEdge,
-                    Wrapping::ClampToEdge,
-                );
-                let depth_target = depth_texture.as_depth_target();
-                RenderTarget::screen(&self.context, viewport.width, viewport.height)
-                    .blit_to(&depth_target.as_render_target());
-
-                // Transparent pass
-                let transparent_color_accum = Texture2D::new_empty::<[f16; 4]>(
-                    &self.context,
-                    viewport.width,
-                    viewport.height,
-                    Interpolation::Nearest,
-                    Interpolation::Nearest,
-                    None,
-                    Wrapping::ClampToEdge,
-                    Wrapping::ClampToEdge,
-                );
-                let transparent_alpha_accum = Texture2D::new_empty::<f32>(
-                    &self.context,
-                    viewport.width,
-                    viewport.height,
-                    Interpolation::Nearest,
-                    Interpolation::Nearest,
-                    None,
-                    Wrapping::ClampToEdge,
-                    Wrapping::ClampToEdge,
-                );
-                let transparent_buffers = [&transparent_color_accum, &transparent_alpha_accum];
-                let buffer_names = ["accumColorMap", "accumAlphaMap"];
-
-                RenderTarget::new(
-                    ColorTarget::new_texture2d_list(
-                        &self.context,
-                        &transparent_buffers,
-                        &buffer_names,
-                        None,
-                    ),
-                    depth_target,
-                )
-                .clear(ClearState::color(0.0, 0.0, 0.0, 1.0))
-                .write::<RendererError>(|| {
-                    for object in transparent_objects {
-                        object.render(&camera, lights);
-                    }
-                    Ok(())
-                })
-                .unwrap();
-
-                // Composite pass
-                self.apply_screen_effect(
-                    &OitResolveEffect::default(),
-                    &viewer,
-                    lights,
-                    Some(ColorTexture::List {
-                        textures: &transparent_buffers,
-                        names: &buffer_names,
-                    }),
-                    None,
-                );
+                self.render_transparency(viewer, lights, &transparent_objects);
             }
             self
         }
@@ -794,14 +727,12 @@ impl<T: Viewer> Viewer for GeometryPassCamera<T> {
 
 macro_rules! impl_render_target_test_body {
     () => {
-        fn test_depth_buffer_size(&self) -> DepthTexture2D {
-            DepthTexture2D::new::<u24u8>(
-                &self.context,
-                self.viewport().width,
-                self.viewport().height,
-                Wrapping::ClampToEdge,
-                Wrapping::ClampToEdge,
-            )
+        fn render_transparency(
+            &self,
+            _viewer: impl Viewer,
+            _lights: &[&dyn Light],
+            _transparent_objects: &[&impl Object],
+        ) {
         }
     };
 }
@@ -865,59 +796,63 @@ macro_rules! debug {
 }
 
 impl RenderTarget<'_> {
-    fn test_depth_buffer_size(&self) -> DepthTexture2D {
-        #[allow(unsafe_code)]
-        let depth_size = unsafe {
-            self.context.get_framebuffer_attachment_parameter_i32(
-                crate::context::DRAW_FRAMEBUFFER,
-                crate::context::DEPTH,
-                crate::context::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE,
-            )
-        };
+    fn render_transparency(
+        &self,
+        viewer: impl Viewer,
+        lights: &[&dyn Light],
+        transparent_objects: &[&impl Object],
+    ) {
+        let camera = GeometryPassCamera(&viewer);
+        let viewport = camera.viewport();
 
-        #[allow(unsafe_code)]
-        let stencil_size = unsafe {
-            let object_type = self.context.get_framebuffer_attachment_parameter_i32(
-                crate::context::DRAW_FRAMEBUFFER,
-                crate::context::STENCIL,
-                crate::context::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-            );
-            if object_type as u32 != crate::context::NONE {
-                self.context.get_framebuffer_attachment_parameter_i32(
-                    crate::context::DRAW_FRAMEBUFFER,
-                    crate::context::STENCIL,
-                    crate::context::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE,
-                )
-            } else {
-                0
-            }
-        };
-
-        log::warn!("Depth size: {depth_size}, stencil size: {stencil_size}");
-
-        #[allow(unsafe_code)]
-        let e = unsafe { self.context.get_error() };
-
-        if e != crate::context::NO_ERROR {
-            let msg = match e {
-                crate::context::INVALID_ENUM => "Invalid enum",
-                crate::context::INVALID_VALUE => "Invalid value",
-                crate::context::INVALID_OPERATION => "Invalid operation",
-                crate::context::INVALID_FRAMEBUFFER_OPERATION => "Invalid framebuffer operation",
-                crate::context::OUT_OF_MEMORY => "Out of memory",
-                crate::context::STACK_OVERFLOW => "Stack overflow",
-                crate::context::STACK_UNDERFLOW => "Stack underflow",
-                _ => "Unknown",
-            };
-            log::error!("{msg}");
-        }
-
-        DepthTexture2D::new::<u24u8>(
+        // Read depth from back buffer
+        let mut depth_texture = DepthTexture2D::new::<u24u8>(
             &self.context,
-            self.viewport().width,
-            self.viewport().height,
+            viewport.width,
+            viewport.height,
             Wrapping::ClampToEdge,
             Wrapping::ClampToEdge,
+        );
+        let depth_target = depth_texture.as_depth_target();
+        RenderTarget::screen(&self.context, viewport.width, viewport.height)
+            .blit_to(&depth_target.as_render_target());
+
+        // Transparent pass
+        let mut fragment_counter = AtomicCounterBuffer::new(&self.context, 1);
+        let zero_data = [0u32; 1];
+        fragment_counter.fill(&zero_data);
+        
+        let transparent_buffers = [&fragment_counter, &transparent_alpha_accum];
+        let buffer_names = ["fragmentCounter", "accumAlphaMap"];
+
+        RenderTarget::new(
+            ColorTarget::new_texture2d_list(
+                &self.context,
+                &transparent_buffers,
+                &buffer_names,
+                None,
+            ),
+            depth_target,
         )
+        .clear(ClearState::color(0.0, 0.0, 0.0, 1.0))
+        .write::<RendererError>(|| {
+            for object in transparent_objects {
+                object.render(&camera, lights);
+            }
+            Ok(())
+        })
+        .unwrap();
+
+        // Composite pass
+        self.apply_screen_effect(
+            &OitResolveEffect::default(),
+            &viewer,
+            lights,
+            Some(ColorTexture::List {
+                textures: &transparent_buffers,
+                names: &buffer_names,
+            }),
+            None,
+        );
     }
 }
