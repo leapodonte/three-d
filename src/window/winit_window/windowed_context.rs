@@ -8,7 +8,6 @@ use winit::window::Window;
 mod inner {
     use crate::HardwareAcceleration;
     use serde::{Deserialize, Serialize};
-    use three_d_asset::Viewport;
     use wasm_bindgen::JsCast;
     use winit::platform::web::WindowExtWebSys;
 
@@ -82,12 +81,7 @@ mod inner {
         }
 
         /// Resizes the context
-        pub fn resize(&self, physical_size: winit::dpi::PhysicalSize<u32>) {
-            self.context.set_viewport(Viewport::new_at_origo(
-                physical_size.width.max(1),
-                physical_size.height.max(1),
-            ));
-        }
+        pub fn resize(&self, _physical_size: winit::dpi::PhysicalSize<u32>) {}
 
         /// Make this context current. Needed when using multiple windows (contexts) on native.
         pub fn make_current(&self) -> Result<(), WindowError> {
