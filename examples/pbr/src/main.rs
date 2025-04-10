@@ -28,7 +28,7 @@ pub async fn run() {
     let mut control = OrbitControl::new(camera.target(), 1.0, 100.0);
     let mut gui = three_d::GUI::new(&context);
 
-    //sphere
+    //picking sphere
     let mut sphere2p = CpuMesh::sphere(8);
     sphere2p.transform(Mat4::from_scale(0.3)).unwrap();
     let mut pick_mesh = Gm::new(
@@ -36,7 +36,7 @@ pub async fn run() {
         PhysicalMaterial::new_opaque(
             &context,
             &CpuMaterial {
-                albedo: Srgba::new(255, 255, 0, 255),
+                albedo: Srgba::new(255, 255, 0, 0),
                 ..Default::default()
             },
         ),
@@ -44,33 +44,10 @@ pub async fn run() {
 
     let ambient = AmbientLight::new(&context, 0.4, Srgba::WHITE);
     let directional = DirectionalLight::new(&context, 2.0, Srgba::WHITE, vec3(-1.0, -1.0, -1.0));
-    let transformations: Vec<_> = (-30..30)
-        .flat_map(|i| {
-            (-30..30).map(move |j| {
-                Mat4::from_translation(vec3(i as f32, j as f32, 0.0)) * Mat4::from_scale(0.3)
-            })
-        })
-        .collect();
-    let no_instances = transformations.len();
-    let instances = Instances {
-        transformations,
-        colors: Some(vec![Srgba::GREEN; no_instances]),
-        ..Default::default()
-    };
-    let mut instanced_mesh = Gm::new(
-        InstancedMesh::new(&context, &instances, &sphere2p),
-        PhysicalMaterial::new_opaque(
-            &context,
-            &CpuMaterial {
-                albedo: Srgba::WHITE,
-                ..Default::default()
-            },
-        ),
-    );
-
+    
     let mut loaded = if let Ok(loaded) = three_d_asset::io::load_async(&[
-        "../assets/chinese_garden_4k.hdr", // Source: https://polyhaven.com/
-        "examples/assets/gltf/DamagedHelmet.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
+        "assets/chinese_garden_4k.hdr", // Source: https://polyhaven.com/
+        "assets/gltf/DamagedHelmet.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
     ])
     .await
     {
@@ -250,10 +227,9 @@ pub async fn run() {
             {
                 if button == MouseButton::Left {
                     // Reset colors and pick mesh position
-                    let mut instances = instances.clone();
-                    instanced_mesh.set_instances(&instances);
+                    
                     pick_mesh.set_transformation(Mat4::from_translation(vec3(0.0, 0.0, 0.0)));
-
+                    pick_mesh.material.albedo = Srgba::new(255, 255, 0, 0);
                     // Pick
                     if let Some(pick) = pick(
                         &context,
@@ -263,21 +239,10 @@ pub async fn run() {
                         Cull::Back,
                     )
                     {
-                        
                         pick_mesh.set_transformation(
                             Mat4::from_translation(pick.position) * Mat4::from_scale(0.3),
                         );
-                        match pick.geometry_id {
-                            
-                            0 => {
-                                instances.colors.as_mut().unwrap()[pick.instance_id as usize] =
-                                    Srgba::RED;
-                                instanced_mesh.set_instances(&instances);
-                            }
-                            _ => {
-                                unreachable!()
-                            }
-                        };
+                        pick_mesh.material.albedo = Srgba::new(255, 255, 0, 255);
                         change = true;
                     }
                 }
