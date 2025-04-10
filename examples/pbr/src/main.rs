@@ -47,7 +47,7 @@ pub async fn run() {
     let transformations: Vec<_> = (-30..30)
         .flat_map(|i| {
             (-30..30).map(move |j| {
-                Mat4::from_translation(vec3(i as f32, j as f32, 0.0)) * Mat4::from_scale(3.0)
+                Mat4::from_translation(vec3(i as f32, j as f32, 0.0)) * Mat4::from_scale(0.3)
             })
         })
         .collect();
@@ -259,14 +259,14 @@ pub async fn run() {
                         &context,
                         &camera,
                         position,
-                        instanced_mesh.into_iter(),
+                        model.into_iter(),
                         Cull::Back,
                     )
                     {
-                        if position.x > panel_width{
+                        
                         pick_mesh.set_transformation(
                             Mat4::from_translation(pick.position) * Mat4::from_scale(0.3),
-                        );}
+                        );
                         match pick.geometry_id {
                             
                             0 => {
