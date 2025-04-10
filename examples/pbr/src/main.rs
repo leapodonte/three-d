@@ -9,7 +9,7 @@ use three_d::*;
 
 pub async fn run() {
     let window = Window::new(WindowSettings {
-        title: "PBR!".to_string(),
+        title: "PBR_Picking!".to_string(),
         max_size: Some((1280, 720)),
         ..Default::default()
     })
@@ -28,9 +28,26 @@ pub async fn run() {
     let mut control = OrbitControl::new(camera.target(), 1.0, 100.0);
     let mut gui = three_d::GUI::new(&context);
 
+    //picking sphere
+    let mut sphere2p = CpuMesh::sphere(8);
+    sphere2p.transform(Mat4::from_scale(0.3)).unwrap();
+    let mut pick_mesh = Gm::new(
+        Mesh::new(&context, &sphere2p),
+        PhysicalMaterial::new_opaque(
+            &context,
+            &CpuMaterial {
+                albedo: Srgba::new(255, 255, 0, 0),
+                ..Default::default()
+            },
+        ),
+    );
+
+    let ambient = AmbientLight::new(&context, 0.4, Srgba::WHITE);
+    let directional = DirectionalLight::new(&context, 2.0, Srgba::WHITE, vec3(-1.0, -1.0, -1.0));
+    
     let mut loaded = if let Ok(loaded) = three_d_asset::io::load_async(&[
-        "../assets/chinese_garden_4k.hdr", // Source: https://polyhaven.com/
-        "examples/assets/gltf/DamagedHelmet.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
+        "assets/chinese_garden_4k.hdr", // Source: https://polyhaven.com/
+        "assets/gltf/DamagedHelmet.glb", // Source: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0
     ])
     .await
     {
@@ -138,6 +155,8 @@ pub async fn run() {
     let mut emissive_map_enabled = true;
     window.render_loop(move |mut frame_input| {
         let mut panel_width = 0.0;
+        let mut change = frame_input.first_frame;
+        change |= camera.set_viewport(frame_input.viewport);
         gui.update(
             &mut frame_input.events,
             frame_input.accumulated_time,
@@ -197,13 +216,50 @@ pub async fn run() {
                 - (panel_width * frame_input.device_pixel_ratio) as u32,
             height: frame_input.viewport.height,
         };
-        camera.set_viewport(viewport);
-        control.handle_events(&mut camera, &mut frame_input.events);
+        //change
+        
+        change |= camera.set_viewport(viewport);
+        
+        for event in frame_input.events.iter() {
+            if let Event::MousePress {
+                button, position, ..
+            } = *event
+            {
+                if button == MouseButton::Left {
+                    // Reset colors and pick mesh position
+                    
+                    pick_mesh.set_transformation(Mat4::from_translation(vec3(0.0, 0.0, 0.0)));
+                    pick_mesh.material.albedo = Srgba::new(255, 255, 0, 0);
+                    // Pick
+                    if let Some(pick) = pick(
+                        &context,
+                        &camera,
+                        position,
+                        model.into_iter(),
+                        Cull::Back,
+                    )
+                    {
+                        pick_mesh.set_transformation(
+                            Mat4::from_translation(pick.position) * Mat4::from_scale(0.3),
+                        );
+                        pick_mesh.material.albedo = Srgba::new(255, 255, 0, 255);
+                        change = true;
+                    }
+                }
+            }
+        }
 
-        frame_input
+        //control.handle_events(&mut camera, &mut frame_input.events);
+
+        change |= control.handle_events(&mut camera, &mut frame_input.events);
+
+        if change{
+            frame_input
             .screen()
             .clear(ClearState::color_and_depth(0.5, 0.5, 0.5, 1.0, 1.0))
-            .render(&camera, &skybox, &[])
+            .render(&camera, pick_mesh
+                .into_iter()
+                .chain(&skybox), &[&ambient, &directional])
             .write(|| {
                 let material = PhysicalMaterial {
                     name: model.material.name.clone(),
@@ -254,6 +310,10 @@ pub async fn run() {
             })
             .unwrap();
 
-        FrameOutput::default()
+        }
+        FrameOutput {
+            swap_buffers: change,
+            ..Default::default()
+        }
     });
 }
